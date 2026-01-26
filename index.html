@@ -202,6 +202,8 @@
                 logoUrl: null,
                 faviconUrl: null,
                 websiteUrl: "https://neeradaschool.edu.la",
+                adminCode: "0000",
+                categories: ["Fiction", "Action", "Horror", "Moral Stories", "Science", "History", "Kids"],
                 galleryImages: [
                     "https://images.unsplash.com/photo-1521587760476-6c12a4b040da?q=80&w=800&auto=format&fit=crop",
                     "https://images.unsplash.com/photo-1512820790803-83ca734da794?q=80&w=800&auto=format&fit=crop",
@@ -258,21 +260,21 @@
 
         // Initial Data (Seed Data)
         const initialBooks = [
-            { id: 1, title: "The Little Elephant", title_la: "ຊ້ານ້ອຍຜູ້ກ້າຫານ", author: "Somsanouk", level: "early", category: "fiction", coverColor: "bg-gradient-to-br from-pink-300 to-rose-300", desc: "A brave little elephant finds his way home.", desc_la: "ຊ້າງນ້ອຍຜູ້ກ້າຫານຊອກຫາທາງກັບບ້ານ.", pages: [{en:"Once upon a time, there was a little elephant named Noi.", la:"ກາລຄັ້ງໜຶ່ງ, ມີຊ້າງນ້ອຍໂຕໜຶ່ງຊື່ວ່າ ນ້ອຍ."}, {en:"Noi played in the forest.", la:"ນ້ອຍຫຼິ້ນຢູ່ໃນປ່າ."}, {en:"He saw a butterfly.", la:"ລາວເຫັນແມງກະເບື້ອ."}, {en:"The butterfly was blue.", la:"ແມງກະເບື້ອນັ້ນມີສີຟ້າ."}, {en:"Noi was happy.", la:"ນ້ອຍມີຄວາມສຸກ."}] },
-            { id: 2, title: "Colors of Nature", title_la: "ສີສັນຂອງທຳມະຊາດ", author: "Ms. Boua", level: "early", category: "science", coverColor: "bg-gradient-to-br from-green-300 to-emerald-300", desc: "Learning colors with flowers and trees.", desc_la: "ຮຽນຮູ້ສີຕ່າງໆກັບດອກໄມ້ແລະຕົ້ນໄມ້.", pages: [{en:"The sky is blue.", la:"ທ້ອງຟ້າແມ່ນສີຟ້າ."}, {en:"The grass is green.", la:"ຫຍ້າແມ່ນສີຂຽວ."}, {en:"The sun is yellow.", la:"ຕາເວັນແມ່ນສີເຫຼືອງ."}, {en:"The apple is red.", la:"ຫມາກໂປມແມ່ນສີແດງ."}, {en:"Nature is beautiful.", la:"ທຳມະຊາດແມ່ນສວຍງາມ."}] },
-            { id: 3, title: "My First Numbers", title_la: "ຕົວເລກຂອງຂ້ອຍ", author: "Teacher Phet", level: "early", category: "science", coverColor: "bg-gradient-to-br from-yellow-300 to-orange-300", desc: "Count from 1 to 5.", desc_la: "ນັບເລກ 1 ເຖິງ 5.", pages: [{en:"One apple.", la:"ຫມາກໂປມຫນຶ່ງຫນ່ວຍ."}, {en:"Two bananas.", la:"ຫມາກກ້ວຍສອງຫນ່ວຍ."}, {en:"Three cats.", la:"ແມວສາມໂຕ."}, {en:"Four dogs.", la:"ຫມາສີ່ໂຕ."}, {en:"Five birds.", la:"ນົກຫ້າໂຕ."}] },
-            { id: 11, title: "The Sleepy Moon", title_la: "ພະຈັນຂີ້ເຫງົານອນ", author: "Moonbeam", level: "early", category: "fiction", coverColor: "bg-gradient-to-br from-indigo-300 to-purple-300", desc: "Time for bed.", desc_la: "ເຖິງເວລານອນແລ້ວ.", pages: [{en:"The sun goes down.", la:"ຕາເວັນຕົກດິນ."}, {en:"The stars come out.", la:"ດວງດາວອອກມາ."}, {en:"The moon is sleepy.", la:"ພະຈັນງ່ວງນອນ."}, {en:"Goodnight world.", la:"ຝັນດີໂລກ."}, {en:"Sweet dreams.", la:"ນອນຫຼັບຝັນດີ."}] },
-            { id: 12, title: "Happy Animals", title_la: "ສັດທີ່ມີຄວາມສຸກ", author: "Zoo Keeper", level: "early", category: "fiction", coverColor: "bg-gradient-to-br from-red-300 to-orange-300", desc: "Meet the animals.", desc_la: "ພົບກັບສັດຕ່າງໆ.", pages: [{en:"The lion roars.", la:"ສິງໂຕຮ້ອງ."}, {en:"The duck quacks.", la:"ເປັດຮ້ອງ."}, {en:"The cow moos.", la:"ງົວຮ້ອງ."}, {en:"The cat meows.", la:"ແມວຮ້ອງ."}, {en:"We love animals.", la:"ພວກຮັກສັດ."}] },
-            { id: 4, title: "The Rain Cycle", title_la: "ວົງຈອນຂອງຝົນ", author: "Dr. Science", level: "primary", category: "science", coverColor: "bg-gradient-to-br from-purple-300 to-indigo-300", desc: "Why does it rain? Learn about the water cycle.", desc_la: "ເປັນຫຍັງຝົນຈຶ່ງຕົກ? ຮຽນຮູ້ກ່ຽວກັບວົງຈອນນ້ຳ.", pages: [{en:"The sun heats the ocean water.", la:"ແສງຕາເວັນເຮັດໃຫ້ນ້ຳມະຫາສະໝຸດຮ້ອນ."}, {en:"Water turns into vapor and rises.", la:"ນ້ຳກາຍເປັນອາຍແລະລອຍຂຶ້ນ."}, {en:"Clouds form in the sky.", la:"ເມກກໍ່ຕົວຂຶ້ນເທິງທ້ອງຟ້າ."}, {en:"Rain falls down to earth.", la:"ຝົນຕົກລົງມາສູ່ພື້ນດິນ."}, {en:"The water goes back to the river.", la:"ນ້ຳໄຫຼກັບຄືນສູ່ແມ່ນ້ຳ."}] },
-            { id: 5, title: "The Lost Temple", title_la: "ວັດທີ່ສາບສູນ", author: "Adv. Jones", level: "primary", category: "fiction", coverColor: "bg-gradient-to-br from-amber-600 to-yellow-500", desc: "An adventure in the jungle.", desc_la: "ການຜະຈົນໄພໃນປ່າ.", pages: [{en:"Max found an old map.", la:"ແມັກພົບແຜນທີ່ເກົ່າ."}, {en:"He walked deep into the jungle.", la:"ລາວຍ່າງເຂົ້າໄປໃນປ່າເລິກ."}, {en:"He saw ancient stones.", la:"ລາວເຫັນຫີນບູຮານ."}, {en:"A monkey showed him the way.", la:"ລີງໂຕໜຶ່ງຊີ້ທາງໃຫ້ລາວ."}, {en:"He found the golden temple!", la:"ລາວພົບວັດທອງຄຳ!"}] },
-            { id: 6, title: "Solar System Guide", title_la: "ຄູ່ມືລະບົບສຸລິຍະ", author: "Space Lab", level: "primary", category: "science", coverColor: "bg-gradient-to-br from-slate-800 to-slate-600", desc: "Explore the planets.", desc_la: "ສຳຫຼວດດາວເຄາະ.", pages: [{en:"Mercury is closest to the sun.", la:"ດາວພຸດຢູ່ໃກ້ຕາເວັນທີ່ສຸດ."}, {en:"Venus is very hot.", la:"ດາວສຸກຮ້ອນຫຼາຍ."}, {en:"Earth is our home.", la:"ໂລກແມ່ນບ້ານຂອງເຮົາ."}, {en:"Mars is the red planet.", la:"ດາວອັງຄານແມ່ນດາວສີແດງ."}, {en:"Jupiter is the biggest giant.", la:"ດາວພະຫັດແມ່ນດາວຍັກໃຫຍ່ທີ່ສຸດ."}] },
-            { id: 13, title: "Lao Folktales", title_la: "ນິທານພື້ນເມືອງລາວ", author: "Grandma Pheng", level: "primary", category: "history", coverColor: "bg-gradient-to-br from-teal-400 to-emerald-500", desc: "Stories from the past.", desc_la: "ເລື່ອງລາວຈາກອະດີດ.", pages: [{en:"Long ago, animals could talk.", la:"ດົນນານມາແລ້ວ, ສັດສາມາດເວົ້າໄດ້."}, {en:"The turtle was wise.", la:"ເຕົ່າເປັນຜູ້ສະຫຼາດ."}, {en:"The rabbit was fast but lazy.", la:"ກະຕ່າຍໄວແຕ່ຂີ້ຄ້ານ."}, {en:"They had a race.", la:"ພວກເຂົາແຂ່ງຂັນກັນ."}, {en:"Slow and steady wins.", la:"ຊ້າແຕ່ໝັ້ນຄົງຍ່ອມຊະນະ."}] },
-            { id: 14, title: "Friendly Math", title_la: "ຄະນິດສາດເພື່ອນມິດ", author: "Mr. Calculator", level: "primary", category: "science", coverColor: "bg-gradient-to-br from-cyan-400 to-blue-500", desc: "Math is fun!", desc_la: "ຄະນິດສາດມ່ວນ!", pages: [{en:"Addition adds things together.", la:"ການບວກແມ່ນການເອົາສິ່ງຂອງມາລວມກັນ."}, {en:"2 plus 2 is 4.", la:"2 ບວກ 2 ເປັນ 4."}, {en:"Subtraction takes things away.", la:"ການລົບແມ່ນການເອົາສິ່ງຂອງອອກໄປ."}, {en:"5 minus 1 is 4.", la:"5 ລົບ 1 ເປັນ 4."}, {en:"Math helps us every day.", la:"ຄະນິດສາດຊ່ວຍເຮົາທຸກມື້."}] },
-            { id: 7, title: "History of Lan Xang", title_la: "ປະຫວັດສາດລ້ານຊ້າງ", author: "History Dept", level: "secondary", category: "history", coverColor: "bg-gradient-to-br from-blue-600 to-cyan-700", desc: "Origins of the Kingdom.", desc_la: "ຕົ້ນກຳເນີດຂອງອານາຈັກ.", pages: [{en:"Founded in 1353 by Fa Ngum.", la:"ສ້າງຕັ້ງຂຶ້ນໃນປີ 1353 ໂດຍເຈົ້າຟ້າງຸ່ມ."}, {en:"It united many Lao lands.", la:"ມັນໄດ້ລວບລວມແຜ່ນດິນລາວຫຼາຍແຫ່ງ."}, {en:"Luang Prabang was the first capital.", la:"ຫຼວງພະບາງແມ່ນນະຄອນຫຼວງທຳອິດ."}, {en:"Buddhism became the main religion.", la:"ພຸດທະສາສະໜາກາຍເປັນສາສະໜາຫຼັກ."}, {en:"The kingdom lasted for centuries.", la:"ອານາຈັກໄດ້ຢືນຍົງມາຫຼາຍສະຕະວັດ."}] },
-            { id: 8, title: "Biology: Cells", title_la: "ຊີວະວິທະຍາ: ຈຸລັງ", author: "Dr. Som", level: "secondary", category: "science", coverColor: "bg-gradient-to-br from-green-600 to-teal-700", desc: "The building blocks of life.", desc_la: "ພື້ນຖານຂອງສິ່ງທີ່ມີຊີວິດ.", pages: [{en:"All living things are made of cells.", la:"ສິ່ງທີ່ມີຊີວິດທັງໝົດແມ່ນປະກອບດ້ວຍຈຸລັງ."}, {en:"The nucleus is the brain of the cell.", la:"ນິວເຄລຍແມ່ນສະໝອງຂອງຈຸລັງ."}, {en:"Mitochondria create energy.", la:"ໄມໂຕຄອນເດຍສ້າງພະລັງງານ."}, {en:"Plant cells have cell walls.", la:"ຈຸລັງພືດມີຝາຈຸລັງ."}, {en:"Animal cells do not.", la:"ຈຸລັງສັດບໍ່ມີ."}] },
-            { id: 9, title: "Modern Poetry", title_la: "ບົດກອນສະໄໝໃໝ່", author: "Poet Society", level: "secondary", category: "fiction", coverColor: "bg-gradient-to-br from-rose-500 to-pink-600", desc: "Expressing feelings through words.", desc_la: "ສະແດງຄວາມຮູ້ສຶກຜ່ານຄຳເວົ້າ.", pages: [{en:"The city lights shine bright.", la:"ແສງໄຟໃນເມືອງສ່ອງແສງສະຫວ່າງ."}, {en:"Cars move like rivers of light.", la:"ລົດເຄື່ອນທີ່ຄືກັບແມ່ນ້ຳແຫ່ງແສງ."}, {en:"Silence is hard to find.", la:"ຄວາມງຽບສະຫງົບຫາໄດ້ຍາກ."}, {en:"Yet peace is in the heart.", la:"ແຕ່ຄວາມສະຫງົບຢູ່ໃນໃຈ."}, {en:"We write to feel alive.", la:"ເຮົາຂຽນເພື່ອໃຫ້ຮູ້ສຶກມີຊີວິດ."}] },
-            { id: 10, title: "Intro to Coding", title_la: "ແນະນຳການຂຽນໂປຣແກຣມ", author: "Tech Lead", level: "secondary", category: "science", coverColor: "bg-gradient-to-br from-gray-700 to-black", desc: "Learn HTML and JS.", desc_la: "ຮຽນຮູ້ HTML ແລະ JS.", pages: [{en:"Computers speak binary: 0 and 1.", la:"ຄອມພິວເຕີເວົ້າພາສາຖານສອງ: 0 ແລະ 1."}, {en:"HTML builds the structure.", la:"HTML ສ້າງໂຄງສ້າງ."}, {en:"CSS makes it look good.", la:"CSS ເຮັດໃຫ້ມັນເບິ່ງງາມ."}, {en:"JavaScript makes it interactive.", la:"JavaScript ເຮັດໃຫ້ມັນໂຕ້ຕອບໄດ້."}, {en:"Coding is the future.", la:"ການຂຽນໂປຣແກຣມແມ່ນອະນາຄົດ."}] },
-            { id: 15, title: "World Geography", title_la: "ພູມສາດໂລກ", author: "Atlas Team", level: "secondary", category: "history", coverColor: "bg-gradient-to-br from-blue-800 to-indigo-900", desc: "Maps and cultures.", desc_la: "ແຜນທີ່ແລະວັດທະນະທຳ.", pages: [{en:"There are seven continents.", la:"ມີເຈັດທະວີບ."}, {en:"Asia is the largest.", la:"ອາຊີແມ່ນໃຫຍ່ທີ່ສຸດ."}, {en:"The Pacific is the biggest ocean.", la:"ປາຊີຟິກແມ່ນມະຫາສະໝຸດທີ່ໃຫຍ່ທີ່ສຸດ."}, {en:"Mountains effect weather.", la:"ພູເຂົາມີຜົນຕໍ່ສະພາບອາກາດ."}, {en:"We share one planet.", la:"ເຮົາແບ່ງປັນໂລກດຽວກັນ."}] }
+            { id: 1, title: "The Little Elephant", title_la: "ຊ້ານ້ອຍຜູ້ກ້າຫານ", author: "Somsanouk", level: "early", category: "Fiction", coverColor: "bg-gradient-to-br from-pink-300 to-rose-300", desc: "A brave little elephant finds his way home.", desc_la: "ຊ້າງນ້ອຍຜູ້ກ້າຫານຊອກຫາທາງກັບບ້ານ.", pages: [{en:"Once upon a time, there was a little elephant named Noi.", la:"ກາລຄັ້ງໜຶ່ງ, ມີຊ້າງນ້ອຍໂຕໜຶ່ງຊື່ວ່າ ນ້ອຍ."}, {en:"Noi played in the forest.", la:"ນ້ອຍຫຼິ້ນຢູ່ໃນປ່າ."}, {en:"He saw a butterfly.", la:"ລາວເຫັນແມງກະເບື້ອ."}, {en:"The butterfly was blue.", la:"ແມງກະເບື້ອນັ້ນມີສີຟ້າ."}, {en:"Noi was happy.", la:"ນ້ອຍມີຄວາມສຸກ."}] },
+            { id: 2, title: "Colors of Nature", title_la: "ສີສັນຂອງທຳມະຊາດ", author: "Ms. Boua", level: "early", category: "Science", coverColor: "bg-gradient-to-br from-green-300 to-emerald-300", desc: "Learning colors with flowers and trees.", desc_la: "ຮຽນຮູ້ສີຕ່າງໆກັບດອກໄມ້ແລະຕົ້ນໄມ້.", pages: [{en:"The sky is blue.", la:"ທ້ອງຟ້າແມ່ນສີຟ້າ."}, {en:"The grass is green.", la:"ຫຍ້າແມ່ນສີຂຽວ."}, {en:"The sun is yellow.", la:"ຕາເວັນແມ່ນສີເຫຼືອງ."}, {en:"The apple is red.", la:"ຫມາກໂປມແມ່ນສີແດງ."}, {en:"Nature is beautiful.", la:"ທຳມະຊາດແມ່ນສວຍງາມ."}] },
+            { id: 3, title: "My First Numbers", title_la: "ຕົວເລກຂອງຂ້ອຍ", author: "Teacher Phet", level: "early", category: "Science", coverColor: "bg-gradient-to-br from-yellow-300 to-orange-300", desc: "Count from 1 to 5.", desc_la: "ນັບເລກ 1 ເຖິງ 5.", pages: [{en:"One apple.", la:"ຫມາກໂປມຫນຶ່ງຫນ່ວຍ."}, {en:"Two bananas.", la:"ຫມາກກ້ວຍສອງຫນ່ວຍ."}, {en:"Three cats.", la:"ແມວສາມໂຕ."}, {en:"Four dogs.", la:"ຫມາສີ່ໂຕ."}, {en:"Five birds.", la:"ນົກຫ້າໂຕ."}] },
+            { id: 11, title: "The Sleepy Moon", title_la: "ພະຈັນຂີ້ເຫງົານອນ", author: "Moonbeam", level: "early", category: "Fiction", coverColor: "bg-gradient-to-br from-indigo-300 to-purple-300", desc: "Time for bed.", desc_la: "ເຖິງເວລານອນແລ້ວ.", pages: [{en:"The sun goes down.", la:"ຕາເວັນຕົກດິນ."}, {en:"The stars come out.", la:"ດວງດາວອອກມາ."}, {en:"The moon is sleepy.", la:"ພະຈັນງ່ວງນອນ."}, {en:"Goodnight world.", la:"ຝັນດີໂລກ."}, {en:"Sweet dreams.", la:"ນອນຫຼັບຝັນດີ."}] },
+            { id: 12, title: "Happy Animals", title_la: "ສັດທີ່ມີຄວາມສຸກ", author: "Zoo Keeper", level: "early", category: "Kids", coverColor: "bg-gradient-to-br from-red-300 to-orange-300", desc: "Meet the animals.", desc_la: "ພົບກັບສັດຕ່າງໆ.", pages: [{en:"The lion roars.", la:"ສິງໂຕຮ້ອງ."}, {en:"The duck quacks.", la:"ເປັດຮ້ອງ."}, {en:"The cow moos.", la:"ງົວຮ້ອງ."}, {en:"The cat meows.", la:"ແມວຮ້ອງ."}, {en:"We love animals.", la:"ພວກຮັກສັດ."}] },
+            { id: 4, title: "The Rain Cycle", title_la: "ວົງຈອນຂອງຝົນ", author: "Dr. Science", level: "primary", category: "Science", coverColor: "bg-gradient-to-br from-purple-300 to-indigo-300", desc: "Why does it rain? Learn about the water cycle.", desc_la: "ເປັນຫຍັງຝົນຈຶ່ງຕົກ? ຮຽນຮູ້ກ່ຽວກັບວົງຈອນນ້ຳ.", pages: [{en:"The sun heats the ocean water.", la:"ແສງຕາເວັນເຮັດໃຫ້ນ້ຳມະຫາສະໝຸດຮ້ອນ."}, {en:"Water turns into vapor and rises.", la:"ນ້ຳກາຍເປັນອາຍແລະລອຍຂຶ້ນ."}, {en:"Clouds form in the sky.", la:"ເມກກໍ່ຕົວຂຶ້ນເທິງທ້ອງຟ້າ."}, {en:"Rain falls down to earth.", la:"ຝົນຕົກລົງມາສູ່ພື້ນດິນ."}, {en:"The water goes back to the river.", la:"ນ້ຳໄຫຼກັບຄືນສູ່ແມ່ນ້ຳ."}] },
+            { id: 5, title: "The Lost Temple", title_la: "ວັດທີ່ສາບສູນ", author: "Adv. Jones", level: "primary", category: "Action", coverColor: "bg-gradient-to-br from-amber-600 to-yellow-500", desc: "An adventure in the jungle.", desc_la: "ການຜະຈົນໄພໃນປ່າ.", pages: [{en:"Max found an old map.", la:"ແມັກພົບແຜນທີ່ເກົ່າ."}, {en:"He walked deep into the jungle.", la:"ລາວຍ່າງເຂົ້າໄປໃນປ່າເລິກ."}, {en:"He saw ancient stones.", la:"ລາວເຫັນຫີນບູຮານ."}, {en:"A monkey showed him the way.", la:"ລີງໂຕໜຶ່ງຊີ້ທາງໃຫ້ລາວ."}, {en:"He found the golden temple!", la:"ລາວພົບວັດທອງຄຳ!"}] },
+            { id: 6, title: "Solar System Guide", title_la: "ຄູ່ມືລະບົບສຸລິຍະ", author: "Space Lab", level: "primary", category: "Science", coverColor: "bg-gradient-to-br from-slate-800 to-slate-600", desc: "Explore the planets.", desc_la: "ສຳຫຼວດດາວເຄາະ.", pages: [{en:"Mercury is closest to the sun.", la:"ດາວພຸດຢູ່ໃກ້ຕາເວັນທີ່ສຸດ."}, {en:"Venus is very hot.", la:"ດາວສຸກຮ້ອນຫຼາຍ."}, {en:"Earth is our home.", la:"ໂລກແມ່ນບ້ານຂອງເຮົາ."}, {en:"Mars is the red planet.", la:"ດາວອັງຄານແມ່ນດາວສີແດງ."}, {en:"Jupiter is the biggest giant.", la:"ດາວພະຫັດແມ່ນດາວຍັກໃຫຍ່ທີ່ສຸດ."}] },
+            { id: 13, title: "Lao Folktales", title_la: "ນິທານພື້ນເມືອງລາວ", author: "Grandma Pheng", level: "primary", category: "History", coverColor: "bg-gradient-to-br from-teal-400 to-emerald-500", desc: "Stories from the past.", desc_la: "ເລື່ອງລາວຈາກອະດີດ.", pages: [{en:"Long ago, animals could talk.", la:"ດົນນານມາແລ້ວ, ສັດສາມາດເວົ້າໄດ້."}, {en:"The turtle was wise.", la:"ເຕົ່າເປັນຜູ້ສະຫຼາດ."}, {en:"The rabbit was fast but lazy.", la:"ກະຕ່າຍໄວແຕ່ຂີ້ຄ້ານ."}, {en:"They had a race.", la:"ພວກເຂົາແຂ່ງຂັນກັນ."}, {en:"Slow and steady wins.", la:"ຊ້າແຕ່ໝັ້ນຄົງຍ່ອມຊະນະ."}] },
+            { id: 14, title: "Friendly Math", title_la: "ຄະນິດສາດເພື່ອນມິດ", author: "Mr. Calculator", level: "primary", category: "Science", coverColor: "bg-gradient-to-br from-cyan-400 to-blue-500", desc: "Math is fun!", desc_la: "ຄະນິດສາດມ່ວນ!", pages: [{en:"Addition adds things together.", la:"ການບວກແມ່ນການເອົາສິ່ງຂອງມາລວມກັນ."}, {en:"2 plus 2 is 4.", la:"2 ບວກ 2 ເປັນ 4."}, {en:"Subtraction takes things away.", la:"ການລົບແມ່ນການເອົາສິ່ງຂອງອອກໄປ."}, {en:"5 minus 1 is 4.", la:"5 ລົບ 1 ເປັນ 4."}, {en:"Math helps us every day.", la:"ຄະນິດສາດຊ່ວຍເຮົາທຸກມື້."}] },
+            { id: 7, title: "History of Lan Xang", title_la: "ປະຫວັດສາດລ້ານຊ້າງ", author: "History Dept", level: "secondary", category: "History", coverColor: "bg-gradient-to-br from-blue-600 to-cyan-700", desc: "Origins of the Kingdom.", desc_la: "ຕົ້ນກຳເນີດຂອງອານາຈັກ.", pages: [{en:"Founded in 1353 by Fa Ngum.", la:"ສ້າງຕັ້ງຂຶ້ນໃນປີ 1353 ໂດຍເຈົ້າຟ້າງຸ່ມ."}, {en:"It united many Lao lands.", la:"ມັນໄດ້ລວບລວມແຜ່ນດິນລາວຫຼາຍແຫ່ງ."}, {en:"Luang Prabang was the first capital.", la:"ຫຼວງພະບາງແມ່ນນະຄອນຫຼວງທຳອິດ."}, {en:"Buddhism became the main religion.", la:"ພຸດທະສາສະໜາກາຍເປັນສາສະໜາຫຼັກ."}, {en:"The kingdom lasted for centuries.", la:"ອານາຈັກໄດ້ຢືນຍົງມາຫຼາຍສະຕະວັດ."}] },
+            { id: 8, title: "Biology: Cells", title_la: "ຊີວະວິທະຍາ: ຈຸລັງ", author: "Dr. Som", level: "secondary", category: "Science", coverColor: "bg-gradient-to-br from-green-600 to-teal-700", desc: "The building blocks of life.", desc_la: "ພື້ນຖານຂອງສິ່ງທີ່ມີຊີວິດ.", pages: [{en:"All living things are made of cells.", la:"ສິ່ງທີ່ມີຊີວິດທັງໝົດແມ່ນປະກອບດ້ວຍຈຸລັງ."}, {en:"The nucleus is the brain of the cell.", la:"ນິວເຄລຍແມ່ນສະໝອງຂອງຈຸລັງ."}, {en:"Mitochondria create energy.", la:"ໄມໂຕຄອນເດຍສ້າງພະລັງງານ."}, {en:"Plant cells have cell walls.", la:"ຈຸລັງພືດມີຝາຈຸລັງ."}, {en:"Animal cells do not.", la:"ຈຸລັງສັດບໍ່ມີ."}] },
+            { id: 9, title: "Modern Poetry", title_la: "ບົດກອນສະໄໝໃໝ່", author: "Poet Society", level: "secondary", category: "Fiction", coverColor: "bg-gradient-to-br from-rose-500 to-pink-600", desc: "Expressing feelings through words.", desc_la: "ສະແດງຄວາມຮູ້ສຶກຜ່ານຄຳເວົ້າ.", pages: [{en:"The city lights shine bright.", la:"ແສງໄຟໃນເມືອງສ່ອງແສງສະຫວ່າງ."}, {en:"Cars move like rivers of light.", la:"ລົດເຄື່ອນທີ່ຄືກັບແມ່ນ້ຳແຫ່ງແສງ."}, {en:"Silence is hard to find.", la:"ຄວາມງຽບສະຫງົບຫາໄດ້ຍາກ."}, {en:"Yet peace is in the heart.", la:"ແຕ່ຄວາມສະຫງົບຢູ່ໃນໃຈ."}, {en:"We write to feel alive.", la:"ເຮົາຂຽນເພື່ອໃຫ້ຮູ້ສຶກມີຊີວິດ."}] },
+            { id: 10, title: "Intro to Coding", title_la: "ແນະນຳການຂຽນໂປຣແກຣມ", author: "Tech Lead", level: "secondary", category: "Science", coverColor: "bg-gradient-to-br from-gray-700 to-black", desc: "Learn HTML and JS.", desc_la: "ຮຽນຮູ້ HTML ແລະ JS.", pages: [{en:"Computers speak binary: 0 and 1.", la:"ຄອມພິວເຕີເວົ້າພາສາຖານສອງ: 0 ແລະ 1."}, {en:"HTML builds the structure.", la:"HTML ສ້າງໂຄງສ້າງ."}, {en:"CSS makes it look good.", la:"CSS ເຮັດໃຫ້ມັນເບິ່ງງາມ."}, {en:"JavaScript makes it interactive.", la:"JavaScript ເຮັດໃຫ້ມັນໂຕ້ຕອບໄດ້."}, {en:"Coding is the future.", la:"ການຂຽນໂປຣແກຣມແມ່ນອະນາຄົດ."}] },
+            { id: 15, title: "World Geography", title_la: "ພູມສາດໂລກ", author: "Atlas Team", level: "secondary", category: "History", coverColor: "bg-gradient-to-br from-blue-800 to-indigo-900", desc: "Maps and cultures.", desc_la: "ແຜນທີ່ແລະວັດທະນະທຳ.", pages: [{en:"There are seven continents.", la:"ມີເຈັດທະວີບ."}, {en:"Asia is the largest.", la:"ອາຊີແມ່ນໃຫຍ່ທີ່ສຸດ."}, {en:"The Pacific is the biggest ocean.", la:"ປາຊີຟິກແມ່ນມະຫາສະໝຸດທີ່ໃຫຍ່ທີ່ສຸດ."}, {en:"Mountains effect weather.", la:"ພູເຂົາມີຜົນຕໍ່ສະພາບອາກາດ."}, {en:"We share one planet.", la:"ເຮົາແບ່ງປັນໂລກດຽວກັນ."}] }
         ];
 
         // --- INIT & FIREBASE CONNECTION ---
@@ -314,11 +316,9 @@
                 
                 if(document.getElementById('app-root').innerHTML.includes('animate-spin')) {
                     const storedView = localStorage.getItem('neerada_current_view');
-                    // FIX: Restore collection level
                     const storedLevel = localStorage.getItem('neerada_collection_level');
                     if(storedLevel) state.currentCollectionLevel = storedLevel;
 
-                    // FIX: Check Admin Session
                     if(localStorage.getItem('neerada_admin_session') === 'true') {
                         state.isAdmin = true;
                     }
@@ -338,6 +338,9 @@
                     state.appSettings = { ...state.appSettings, ...saved };
                     if(saved.deptImages) state.appSettings.deptImages = {...state.appSettings.deptImages, ...saved.deptImages};
                     if(saved.footerText) state.appSettings.footerText = {...state.appSettings.footerText, ...saved.footerText};
+                    // Ensure categories exists for legacy data
+                    if(!state.appSettings.categories) state.appSettings.categories = ["Fiction", "Action", "Horror", "Moral Stories", "Science", "History", "Kids"];
+                    if(!state.appSettings.adminCode) state.appSettings.adminCode = "0000";
                 } else {
                     setDoc(settingsRef, state.appSettings);
                 }
@@ -370,6 +373,8 @@
                     logoUrl: null,
                     faviconUrl: null,
                     websiteUrl: "https://neeradaschool.edu.la",
+                    adminCode: "0000",
+                    categories: ["Fiction", "Action", "Horror", "Moral Stories", "Science", "History", "Kids"],
                     galleryImages: [
                         "https://images.unsplash.com/photo-1521587760476-6c12a4b040da?q=80&w=800&auto=format&fit=crop",
                         "https://images.unsplash.com/photo-1512820790803-83ca734da794?q=80&w=800&auto=format&fit=crop",
@@ -411,7 +416,6 @@
             state.view = view;
             if (collectionLevel) {
                 state.currentCollectionLevel = collectionLevel;
-                // FIX: Save collection level to prevent default fallback issues
                 localStorage.setItem('neerada_collection_level', collectionLevel);
             }
             localStorage.setItem('neerada_current_view', view);
@@ -668,10 +672,8 @@
 
         // --- NEW VIEW: COLLECTION PAGE ---
         function renderCollectionPage() {
-            // FIX: Fallback logic for invalid level
             const level = state.currentCollectionLevel;
             if(!level) {
-                // If level is missing, redirect safely
                 setTimeout(() => navigate('app'), 0);
                 return `<div class="h-screen flex items-center justify-center">Redirecting...</div>`;
             }
@@ -776,7 +778,6 @@
                         <form onsubmit="window.handleAdminLogin(event)" class="space-y-4">
                             <div>
                                 <label class="block text-sm font-medium text-gray-700 mb-1">Access Code</label>
-                                <!-- FIX: Removed (0000) from placeholder -->
                                 <input type="password" id="admin-code" class="w-full px-4 py-2 rounded-lg border border-gray-300 focus:ring-2 focus:ring-neerada-500 outline-none" placeholder="Enter Admin Code">
                             </div>
                             <button type="submit" class="w-full btn-aesthetic text-white py-2.5 rounded-lg font-bold hover:scale-[1.02] transition">
@@ -795,8 +796,8 @@
             e.preventDefault();
             const codeInput = document.getElementById('admin-code');
             const code = codeInput.value;
-            if(code === '0000') {
-                // FIX: Set admin state and persist session
+            // CHECK AGAINST SAVED CODE
+            if(code === state.appSettings.adminCode) {
                 state.isAdmin = true;
                 localStorage.setItem('neerada_admin_session', 'true');
                 navigate('admin-dashboard');
@@ -1014,17 +1015,15 @@
                                 <div>
                                     <label class="block text-sm font-bold text-gray-700 mb-1">Department</label>
                                     <select id="edit-level" class="w-full border rounded-lg px-3 py-2 focus:ring-2 focus:ring-neerada-500 outline-none bg-white">
-                                        <option value="early">Kindergarten (Pre-K - G2)</option>
-                                        <option value="primary">Primary (G3 - G5)</option>
-                                        <option value="secondary">Secondary (G6 - G12)</option>
+                                        <option value="early">Kindergarten (Pre-K - K3)</option>
+                                        <option value="primary">Primary (P1 - P5)</option>
+                                        <option value="secondary">Secondary (S1 - S7)</option>
                                     </select>
                                 </div>
                                 <div>
                                     <label class="block text-sm font-bold text-gray-700 mb-1">Category</label>
                                     <select id="edit-category" class="w-full border rounded-lg px-3 py-2 focus:ring-2 focus:ring-neerada-500 outline-none bg-white">
-                                        <option value="fiction">Fiction</option>
-                                        <option value="science">Science</option>
-                                        <option value="history">History</option>
+                                        ${state.appSettings.categories.map(c => `<option value="${c}">${c}</option>`).join('')}
                                     </select>
                                 </div>
                             </div>
@@ -1071,35 +1070,74 @@
 
         function renderAdminSettingsTab() {
             return `
-                <h2 class="text-xl font-bold mb-6">School Branding</h2>
-                <div class="space-y-6 max-w-lg">
+                <div class="space-y-10">
+                    <!-- Branding Section -->
                     <div>
-                        <label class="block text-sm font-bold text-gray-700 mb-2">School Name</label>
-                        <input type="text" id="setting-name" value="${state.appSettings.schoolName}" class="w-full border rounded-lg px-4 py-2" onchange="window.updateSetting('schoolName', this.value)">
-                    </div>
-                    
-                    <div>
-                        <label class="block text-sm font-bold text-gray-700 mb-2">School Logo</label>
-                        <div class="flex items-center gap-4">
-                            <div class="w-16 h-16 bg-gray-100 rounded-lg flex items-center justify-center overflow-hidden border">
-                                ${state.appSettings.logoUrl ? `<img src="${state.appSettings.logoUrl}" class="w-full h-full object-cover">` : `<i data-lucide="image" class="text-gray-400"></i>`}
+                        <h2 class="text-xl font-bold mb-6 border-b pb-2">School Branding</h2>
+                        <div class="space-y-6 max-w-lg">
+                            <div>
+                                <label class="block text-sm font-bold text-gray-700 mb-2">School Name</label>
+                                <input type="text" id="setting-name" value="${state.appSettings.schoolName}" class="w-full border rounded-lg px-4 py-2" onchange="window.updateSetting('schoolName', this.value)">
                             </div>
-                            <input type="file" accept="image/*" onchange="window.handleFileUpload(this, 'logoUrl')" class="text-sm text-gray-500">
+                            
+                            <div>
+                                <label class="block text-sm font-bold text-gray-700 mb-2">School Logo</label>
+                                <div class="flex items-center gap-4">
+                                    <div class="w-16 h-16 bg-gray-100 rounded-lg flex items-center justify-center overflow-hidden border">
+                                        ${state.appSettings.logoUrl ? `<img src="${state.appSettings.logoUrl}" class="w-full h-full object-cover">` : `<i data-lucide="image" class="text-gray-400"></i>`}
+                                    </div>
+                                    <input type="file" accept="image/*" onchange="window.handleFileUpload(this, 'logoUrl')" class="text-sm text-gray-500">
+                                </div>
+                            </div>
+
+                            <div>
+                                <label class="block text-sm font-bold text-gray-700 mb-2">Favicon / Touch Icon</label>
+                                <div class="flex items-center gap-4">
+                                    <div class="w-10 h-10 bg-gray-100 rounded-lg flex items-center justify-center overflow-hidden border">
+                                        ${state.appSettings.faviconUrl ? `<img src="${state.appSettings.faviconUrl}" class="w-full h-full object-cover">` : `<i data-lucide="globe" class="text-gray-400"></i>`}
+                                    </div>
+                                    <input type="file" accept="image/*" onchange="window.handleFileUpload(this, 'faviconUrl')" class="text-sm text-gray-500">
+                                </div>
+                            </div>
                         </div>
                     </div>
 
+                    <!-- Category Management -->
                     <div>
-                        <label class="block text-sm font-bold text-gray-700 mb-2">Favicon / Touch Icon</label>
-                        <div class="flex items-center gap-4">
-                            <div class="w-10 h-10 bg-gray-100 rounded-lg flex items-center justify-center overflow-hidden border">
-                                ${state.appSettings.faviconUrl ? `<img src="${state.appSettings.faviconUrl}" class="w-full h-full object-cover">` : `<i data-lucide="globe" class="text-gray-400"></i>`}
+                        <h2 class="text-xl font-bold mb-6 border-b pb-2">Manage Categories</h2>
+                        <div class="max-w-lg">
+                            <div class="flex gap-2 mb-4">
+                                <input type="text" id="new-category-input" placeholder="New Category Name" class="flex-grow border rounded-lg px-4 py-2">
+                                <button onclick="window.addCategory()" class="bg-neerada-600 text-white px-4 py-2 rounded-lg font-bold">Add</button>
                             </div>
-                            <input type="file" accept="image/*" onchange="window.handleFileUpload(this, 'faviconUrl')" class="text-sm text-gray-500">
+                            <div class="flex flex-wrap gap-2">
+                                ${state.appSettings.categories.map(c => `
+                                    <span class="inline-flex items-center gap-2 bg-gray-100 px-3 py-1 rounded-full text-sm font-medium text-gray-700">
+                                        ${c}
+                                        <button onclick="window.removeCategory('${c}')" class="text-gray-400 hover:text-red-500"><i data-lucide="x" class="w-3 h-3"></i></button>
+                                    </span>
+                                `).join('')}
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Admin Security -->
+                    <div>
+                        <h2 class="text-xl font-bold mb-6 border-b pb-2">Admin Security</h2>
+                        <div class="max-w-lg bg-yellow-50 border border-yellow-100 rounded-xl p-6">
+                            <label class="block text-sm font-bold text-gray-700 mb-2">Update Admin Code</label>
+                            <div class="flex gap-3">
+                                <input type="password" id="new-admin-code" placeholder="New 4-digit Code" class="flex-grow border rounded-lg px-4 py-2">
+                                <button onclick="window.changeAdminCode()" class="bg-yellow-600 hover:bg-yellow-700 text-white px-4 py-2 rounded-lg font-bold text-sm whitespace-nowrap">
+                                    Update Code
+                                </button>
+                            </div>
+                            <p class="text-xs text-yellow-700 mt-2">Requires security check to save.</p>
                         </div>
                     </div>
 
                     <!-- Danger Zone -->
-                    <div class="pt-8 border-t mt-8">
+                    <div class="pt-8">
                         <h3 class="text-lg font-bold text-red-600 mb-4">Danger Zone</h3>
                         <div class="bg-red-50 border border-red-200 rounded-xl p-4 flex flex-col sm:flex-row items-center justify-between gap-4">
                             <div>
@@ -1164,6 +1202,44 @@
             navigate('landing');
         }
 
+        // --- Category Management ---
+        function addCategory() {
+            const input = document.getElementById('new-category-input');
+            const val = input.value.trim();
+            if (val && !state.appSettings.categories.includes(val)) {
+                state.appSettings.categories.push(val);
+                saveData();
+                switchAdminTab('settings');
+            }
+        }
+
+        function removeCategory(val) {
+            if(confirm(`Remove category "${val}"?`)) {
+                state.appSettings.categories = state.appSettings.categories.filter(c => c !== val);
+                saveData();
+                switchAdminTab('settings');
+            }
+        }
+
+        // --- Admin Code Management ---
+        function changeAdminCode() {
+            const newCode = document.getElementById('new-admin-code').value;
+            if(!newCode || newCode.length < 4) {
+                alert("Please enter a valid code (at least 4 characters).");
+                return;
+            }
+            
+            const answer = prompt("Security Question: What is your house number?");
+            if(answer === "13") {
+                state.appSettings.adminCode = newCode;
+                saveData();
+                alert("Admin code updated successfully.");
+                document.getElementById('new-admin-code').value = "";
+            } else {
+                alert("Incorrect answer. Security check failed.");
+            }
+        }
+
         // -- BOOK EDITOR LOGIC --
         let tempPageImages = []; 
 
@@ -1173,7 +1249,7 @@
             const titleEl = document.getElementById('editor-title');
             
             let book = {
-                title: "", title_la: "", level: "primary", category: "fiction", author: "", desc: "",
+                title: "", title_la: "", level: "primary", category: "Fiction", author: "", desc: "",
                 coverImage: null,
                 pages: [{en: "", la: "", image: null}] 
             };
@@ -1532,6 +1608,9 @@
         window.setReaderTheme = setReaderTheme;
         window.resetSystem = resetSystem;
         window.adminLogout = adminLogout;
+        window.changeAdminCode = changeAdminCode;
+        window.addCategory = addCategory;
+        window.removeCategory = removeCategory;
 
     </script>
 </body>
