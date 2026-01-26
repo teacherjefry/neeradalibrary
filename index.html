@@ -182,8 +182,6 @@
         // ------------------------------------------------------------------
         
         // Internal Logic to handle Environment vs Manual Config
-        // If you are running this locally, it uses the config above.
-        // If running in the AI preview, it uses the hidden environment config.
         const activeConfig = (typeof __firebase_config !== 'undefined') ? JSON.parse(__firebase_config) : firebaseConfig;
         const appId = (typeof __app_id !== 'undefined') ? __app_id : 'neerada-lib-v1';
 
@@ -198,6 +196,7 @@
             lang: 'en',
             readerTheme: 'classic',
             user: null, 
+            isAdmin: false,
             appSettings: {
                 schoolName: "Neerada School",
                 logoUrl: null,
@@ -279,27 +278,21 @@
         // --- INIT & FIREBASE CONNECTION ---
         window.onload = async function() {
             try {
-                // Check if running in AI preview environment with pre-authed token
                 if (typeof __initial_auth_token !== 'undefined' && __initial_auth_token) {
-                    // Internal AI Preview Auth
-                    // @ts-ignore
                     const { signInWithCustomToken } = await import('https://www.gstatic.com/firebasejs/11.6.1/firebase-auth.js');
                     await signInWithCustomToken(auth, __initial_auth_token);
                 } else {
-                    // Standard Anonymous Auth for GitHub Pages
                     await signInAnonymously(auth);
                 }
             } catch (error) {
                 console.error("Auth failed:", error);
-                // If auth fails (e.g. config not set), show a helpful message in the UI
                 if (document.getElementById('app-root').innerHTML.includes('animate-spin')) {
-                    document.querySelector('#app-root p').innerText = "Connection Failed. Please check Firebase Config in code.";
+                    document.querySelector('#app-root p').innerText = "Connection Failed. Please check Firebase Config.";
                     document.querySelector('#app-root p').classList.add('text-red-500');
                 }
             }
         };
 
-        // Auth Listener & Data Sync
         onAuthStateChanged(auth, (user) => {
             if (user) {
                 state.user = user;
@@ -308,24 +301,28 @@
         });
 
         function setupRealtimeListeners() {
-            // Path: artifacts/{appId}/public/data/neerada_books/main
-            // We use 'main' as the specific document ID to store the array of books
             const booksRef = doc(db, 'artifacts', appId, 'public', 'data', 'neerada_books', 'main');
             const settingsRef = doc(db, 'artifacts', appId, 'public', 'data', 'neerada_settings', 'main');
 
-            // Books Listener
             onSnapshot(booksRef, (docSnap) => {
                 if (docSnap.exists()) {
                     state.books = docSnap.data().items || [];
                 } else {
-                    // If no data exists, seed it with the initialBooks constant
                     state.books = initialBooks;
                     setDoc(booksRef, { items: initialBooks });
                 }
                 
-                // If this is the first render (loading screen active)
                 if(document.getElementById('app-root').innerHTML.includes('animate-spin')) {
                     const storedView = localStorage.getItem('neerada_current_view');
+                    // FIX: Restore collection level
+                    const storedLevel = localStorage.getItem('neerada_collection_level');
+                    if(storedLevel) state.currentCollectionLevel = storedLevel;
+
+                    // FIX: Check Admin Session
+                    if(localStorage.getItem('neerada_admin_session') === 'true') {
+                        state.isAdmin = true;
+                    }
+
                     if(storedView) state.view = storedView;
                     lucide.createIcons();
                     document.addEventListener('mousemove', handleTilt);
@@ -335,16 +332,13 @@
                 render();
             }, (error) => console.error("Books sync error:", error));
 
-            // Settings Listener
             onSnapshot(settingsRef, (docSnap) => {
                 if (docSnap.exists()) {
                     const saved = docSnap.data();
                     state.appSettings = { ...state.appSettings, ...saved };
-                    // Merge nested objects deep copy style
                     if(saved.deptImages) state.appSettings.deptImages = {...state.appSettings.deptImages, ...saved.deptImages};
                     if(saved.footerText) state.appSettings.footerText = {...state.appSettings.footerText, ...saved.footerText};
                 } else {
-                    // Seed settings
                     setDoc(settingsRef, state.appSettings);
                 }
                 applySettings();
@@ -360,21 +354,17 @@
             setDoc(booksRef, { items: state.books });
             setDoc(settingsRef, state.appSettings);
             
-            // View preference remains local
             localStorage.setItem('neerada_current_view', state.view);
             applySettings();
         }
 
-        // --- DANGER ZONE LOGIC ---
         function resetSystem() {
             const code = prompt("Type 'RESET' to confirm erasing all system data and restoring factory defaults:");
             if (code === 'RESET') {
                 const booksRef = doc(db, 'artifacts', appId, 'public', 'data', 'neerada_books', 'main');
                 const settingsRef = doc(db, 'artifacts', appId, 'public', 'data', 'neerada_settings', 'main');
                 
-                // Reset State to Initial Defaults
                 state.books = initialBooks;
-                // Reset Settings (Manual hardcoded reset to initial state)
                 state.appSettings = {
                     schoolName: "Neerada School",
                     logoUrl: null,
@@ -397,7 +387,6 @@
                     }
                 };
 
-                // Force write to DB
                 setDoc(booksRef, { items: state.books });
                 setDoc(settingsRef, state.appSettings);
                 
@@ -420,7 +409,11 @@
         // --- ROUTING ---
         function navigate(view, collectionLevel = null) {
             state.view = view;
-            if (collectionLevel) state.currentCollectionLevel = collectionLevel;
+            if (collectionLevel) {
+                state.currentCollectionLevel = collectionLevel;
+                // FIX: Save collection level to prevent default fallback issues
+                localStorage.setItem('neerada_collection_level', collectionLevel);
+            }
             localStorage.setItem('neerada_current_view', view);
             window.scrollTo(0,0);
             render();
@@ -428,11 +421,19 @@
             setupObserver();
         }
 
+        function navigateToAdmin() {
+            if(state.isAdmin) {
+                navigate('admin-dashboard');
+            } else {
+                navigate('admin-login');
+            }
+        }
+
         // --- RENDER ENGINE ---
         function render() {
             const root = document.getElementById('app-root');
-            
             let content = '';
+            
             if (state.view === 'landing') content = renderLandingPage();
             else if (state.view === 'app') content = renderUserApp();
             else if (state.view === 'collection') content = renderCollectionPage();
@@ -440,13 +441,10 @@
             else if (state.view === 'admin-dashboard') content = renderAdminDashboard();
             
             root.innerHTML = content;
-            
             if(state.view === 'admin-dashboard') bindAdminEvents();
             lucide.createIcons();
         }
 
-        // ... (VIEW FUNCTIONS OMITTED IF UNCHANGED, but including layout logic for completeness) ...
-        
         function renderLandingPage() {
             const s = state.appSettings;
             return `
@@ -486,7 +484,7 @@
                                 <button onclick="window.navigate('app')" class="px-8 py-4 rounded-xl btn-aesthetic text-white font-bold transition-all transform hover:-translate-y-1">
                                     Start Reading
                                 </button>
-                                <button onclick="window.navigate('admin-login')" class="px-8 py-4 rounded-xl bg-white/80 border border-gray-200 text-neerada-900 font-bold hover:bg-white transition-all shadow-md">
+                                <button onclick="window.navigateToAdmin()" class="px-8 py-4 rounded-xl bg-white/80 border border-gray-200 text-neerada-900 font-bold hover:bg-white transition-all shadow-md">
                                     Admin Portal
                                 </button>
                             </div>
@@ -494,7 +492,6 @@
                     </div>
                 </section>
                 
-                <!-- ... Features, Gallery, Quote sections same as before ... -->
                 <section id="features" class="py-24 bg-white relative z-10">
                     <div class="max-w-7xl mx-auto px-6">
                         <div class="text-center mb-16 reveal">
@@ -671,7 +668,14 @@
 
         // --- NEW VIEW: COLLECTION PAGE ---
         function renderCollectionPage() {
+            // FIX: Fallback logic for invalid level
             const level = state.currentCollectionLevel;
+            if(!level) {
+                // If level is missing, redirect safely
+                setTimeout(() => navigate('app'), 0);
+                return `<div class="h-screen flex items-center justify-center">Redirecting...</div>`;
+            }
+
             const t = translations[state.lang];
             const levelTitle = level === 'early' ? t.levelEarly : level === 'primary' ? t.levelPrimary : t.levelSecondary;
             const collectionBooks = state.books.filter(b => b.level === level);
@@ -772,7 +776,8 @@
                         <form onsubmit="window.handleAdminLogin(event)" class="space-y-4">
                             <div>
                                 <label class="block text-sm font-medium text-gray-700 mb-1">Access Code</label>
-                                <input type="password" id="admin-code" class="w-full px-4 py-2 rounded-lg border border-gray-300 focus:ring-2 focus:ring-neerada-500 outline-none" placeholder="Code (0000)">
+                                <!-- FIX: Removed (0000) from placeholder -->
+                                <input type="password" id="admin-code" class="w-full px-4 py-2 rounded-lg border border-gray-300 focus:ring-2 focus:ring-neerada-500 outline-none" placeholder="Enter Admin Code">
                             </div>
                             <button type="submit" class="w-full btn-aesthetic text-white py-2.5 rounded-lg font-bold hover:scale-[1.02] transition">
                                 Enter
@@ -791,9 +796,11 @@
             const codeInput = document.getElementById('admin-code');
             const code = codeInput.value;
             if(code === '0000') {
+                // FIX: Set admin state and persist session
+                state.isAdmin = true;
+                localStorage.setItem('neerada_admin_session', 'true');
                 navigate('admin-dashboard');
             } else {
-                // Shake effect instead of alert
                 codeInput.classList.add('border-red-500', 'ring-2', 'ring-red-200');
                 setTimeout(() => codeInput.classList.remove('border-red-500', 'ring-2', 'ring-red-200'), 500);
             }
@@ -810,7 +817,7 @@
                         </div>
                         <div class="flex gap-3">
                             <button onclick="window.navigate('app')" class="px-4 py-2 text-sm text-gray-600 hover:bg-gray-100 rounded-lg">View Site</button>
-                            <button onclick="window.navigate('landing')" class="px-4 py-2 text-sm text-red-600 hover:bg-red-50 rounded-lg">Logout</button>
+                            <button onclick="window.adminLogout()" class="px-4 py-2 text-sm text-red-600 hover:bg-red-50 rounded-lg">Logout</button>
                         </div>
                     </header>
 
@@ -1149,6 +1156,12 @@
             if(tab === 'backup') content.innerHTML = renderAdminBackupTab();
             if(tab === 'homepage') content.innerHTML = renderAdminHomePageTab();
             lucide.createIcons();
+        }
+
+        function adminLogout() {
+            state.isAdmin = false;
+            localStorage.removeItem('neerada_admin_session');
+            navigate('landing');
         }
 
         // -- BOOK EDITOR LOGIC --
@@ -1496,6 +1509,7 @@
 
         // Export functions to window for onclick handlers
         window.navigate = navigate;
+        window.navigateToAdmin = navigateToAdmin;
         window.toggleLang = toggleLang;
         window.openReader = openReader;
         window.handleAdminLogin = handleAdminLogin;
@@ -1517,6 +1531,7 @@
         window.changeReaderPage = changeReaderPage;
         window.setReaderTheme = setReaderTheme;
         window.resetSystem = resetSystem;
+        window.adminLogout = adminLogout;
 
     </script>
 </body>
