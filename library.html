@@ -379,12 +379,24 @@
             const storedSettings = localStorage.getItem('neerada_settings');
             const storedView = localStorage.getItem('neerada_current_view');
             
-            state.books = storedBooks ? JSON.parse(storedBooks) : initialBooks;
+            // Fix: Check if stored data is valid and non-empty, otherwise use initialBooks
+            let parsedBooks = [];
+            try {
+                parsedBooks = storedBooks ? JSON.parse(storedBooks) : [];
+            } catch (e) {
+                parsedBooks = [];
+            }
+
+            if (parsedBooks.length === 0) {
+                state.books = initialBooks;
+                saveData(); // Persist the initial data immediately to fix future loads
+            } else {
+                state.books = parsedBooks;
+            }
+
             if(storedSettings) {
-                // Merge to ensure new keys exist
                 const saved = JSON.parse(storedSettings);
                 state.appSettings = { ...state.appSettings, ...saved };
-                // Deep merge for nested objects if they exist
                 if(saved.deptImages) state.appSettings.deptImages = {...state.appSettings.deptImages, ...saved.deptImages};
                 if(saved.galleryImages) state.appSettings.galleryImages = saved.galleryImages;
                 if(saved.footerText) state.appSettings.footerText = {...state.appSettings.footerText, ...saved.footerText};
