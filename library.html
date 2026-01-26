@@ -189,6 +189,30 @@
             mint: { bg: "bg-emerald-50", text: "text-emerald-900", name: "Mint" }
         };
 
+        // Translations Dictionary (Added back to fix ReferenceError)
+        const translations = {
+            en: {
+                welcome: "Welcome",
+                subtitle: "Select a department to explore",
+                levelEarly: "Kindergarten",
+                levelPrimary: "Primary",
+                levelSecondary: "Secondary",
+                earlyDesc: "Curated stories, songs, and picture books designed to spark imagination in our youngest learners.",
+                primaryDesc: "A rich collection of chapter books and educational resources to build reading confidence.",
+                secondaryDesc: "Academic journals, literature classics, and research materials for advanced study."
+            },
+            la: {
+                welcome: "ຍິນດີຕ້ອນຮັບ",
+                subtitle: "ເລືອກພະແນກເພື່ອເລີ່ມຕົ້ນ",
+                levelEarly: "ອະນຸບານ",
+                levelPrimary: "ປະຖົມ",
+                levelSecondary: "ມັດທະຍົມ",
+                earlyDesc: "ນິທານ, ເພງ ແລະ ປຶ້ມຮູບພາບທີ່ຖືກຄັດສັນມາເພື່ອເສີມສ້າງຈິນຕະນາການ.",
+                primaryDesc: "ປຶ້ມອ່ານ ແລະ ແຫຼ່ງການຮຽນຮູ້ທີ່ຫຼາກຫຼາຍເພື່ອສ້າງຄວາມໝັ້ນໃຈໃນການອ່ານ.",
+                secondaryDesc: "ວາລະສານວິຊາການ, ວັນນະຄະດີ ແລະ ເອກະສານການຄົ້ນຄວ້າສຳລັບການຮຽນຂັ້ນສູງ."
+            }
+        };
+
         // Initial Data (15 Books, 5 per level, 5 pages each)
         const initialBooks = [
             // --- KINDERGARTEN (EARLY) ---
