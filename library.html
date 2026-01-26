@@ -408,8 +408,8 @@
                         </div>
                         <div class="hidden md:flex items-center gap-8 font-medium text-gray-700">
                             <a href="#features" class="hover:text-neerada-600 transition">Features</a>
-                            <a href="#quote" class="hover:text-neerada-600 transition">Inspiration</a>
                             <a href="#gallery" class="hover:text-neerada-600 transition">Gallery</a>
+                            <a href="#quote" class="hover:text-neerada-600 transition">Inspiration</a>
                             <button onclick="navigate('app')" class="px-6 py-2.5 rounded-full btn-aesthetic text-white font-semibold hover:scale-105 transition-all duration-300">
                                 Enter Library
                             </button>
@@ -417,12 +417,10 @@
                     </div>
                 </nav>
 
-                <!-- Hero Section with Background Image & Light Glassmorphism -->
-                <section class="relative pt-32 pb-20 lg:pt-48 lg:pb-32 overflow-hidden min-h-[90vh] flex items-center">
-                    <!-- Background Image -->
-                    <div class="absolute inset-0 z-0">
-                        <img src="https://images.unsplash.com/photo-1524995997946-a1c2e315a42f?q=80&w=2000&auto=format&fit=crop" class="w-full h-full object-cover">
-                    </div>
+                <!-- Hero Section with FIXED Background Image & Light Glassmorphism -->
+                <section class="relative pt-32 pb-20 lg:pt-48 lg:pb-32 min-h-[90vh] flex items-center bg-fixed bg-cover bg-center" style="background-image: url('https://images.unsplash.com/photo-1524995997946-a1c2e315a42f?q=80&w=2000&auto=format&fit=crop');">
+                    <!-- Overlay for text readability (optional but good for accessibility) -->
+                    <div class="absolute inset-0 bg-white/10"></div>
 
                     <!-- Centered Hero Content -->
                     <div class="max-w-5xl mx-auto px-6 relative z-10 text-center w-full">
@@ -451,22 +449,8 @@
                     </div>
                 </section>
 
-                <!-- Dedicated Quote Section (Parallax) -->
-                <section id="quote" class="relative py-32 bg-fixed bg-cover bg-center overflow-hidden" style="background-image: url('https://images.unsplash.com/photo-1481627834876-b7833e8f5570?q=80&w=2000&auto=format&fit=crop');">
-                    <div class="absolute inset-0 bg-neerada-950/70"></div>
-                    <div class="max-w-4xl mx-auto px-6 relative z-10 text-center reveal">
-                        <i data-lucide="quote" class="w-12 h-12 text-neerada-400 mx-auto mb-6 opacity-80"></i>
-                        <blockquote class="text-4xl md:text-5xl font-serif text-white italic leading-tight mb-8">
-                            "Today a reader, tomorrow a leader."
-                        </blockquote>
-                        <cite class="text-lg text-neerada-200 font-sans tracking-widest uppercase font-bold not-italic">
-                            — Margaret Fuller
-                        </cite>
-                    </div>
-                </section>
-
                 <!-- Features Grid -->
-                <section id="features" class="py-24 bg-white">
+                <section id="features" class="py-24 bg-white relative z-10">
                     <div class="max-w-7xl mx-auto px-6">
                         <div class="text-center mb-16 reveal">
                             <h2 class="text-3xl lg:text-4xl font-bold text-neerada-950 mb-4">Why Neerada Library?</h2>
@@ -505,7 +489,7 @@
                 </section>
 
                 <!-- Gallery Section -->
-                <section id="gallery" class="py-24 bg-gray-50">
+                <section id="gallery" class="py-24 bg-gray-50 relative z-10">
                     <div class="max-w-7xl mx-auto px-6">
                          <div class="text-center mb-12 reveal">
                             <h2 class="text-3xl font-bold text-neerada-950">Our Library Gallery</h2>
@@ -523,7 +507,8 @@
                                 <img src="https://images.unsplash.com/photo-1512820790803-83ca734da794?q=80&w=800&auto=format&fit=crop" class="w-full h-full object-cover transition duration-700 group-hover:scale-110">
                              </div>
                              <div class="rounded-2xl overflow-hidden shadow-lg reveal group relative" style="transition-delay: 200ms">
-                                <img src="https://images.unsplash.com/photo-1503454537195-1dcabb73ffb9?q=80&w=800&auto=format&fit=crop" class="w-full h-full object-cover transition duration-700 group-hover:scale-110">
+                                <!-- UPDATED IMAGE: Kids reading -->
+                                <img src="https://images.unsplash.com/photo-1519689680058-324335c77eba?q=80&w=800&auto=format&fit=crop" class="w-full h-full object-cover transition duration-700 group-hover:scale-110">
                              </div>
                              <div class="col-span-2 rounded-2xl overflow-hidden shadow-lg reveal group relative" style="transition-delay: 300ms">
                                 <img src="https://images.unsplash.com/photo-1457369804613-52c61a468e7d?q=80&w=800&auto=format&fit=crop" class="w-full h-full object-cover transition duration-700 group-hover:scale-110">
@@ -536,7 +521,31 @@
                     </div>
                 </section>
 
-                <footer class="bg-neerada-950 text-white py-12 border-t border-white/10">
+                <!-- Dedicated Quote Section (Moved to Bottom & Redesigned) -->
+                <section id="quote" class="py-24 bg-white relative z-10">
+                    <div class="max-w-7xl mx-auto px-6">
+                        <div class="flex flex-col md:flex-row items-center gap-12">
+                            <!-- Image Side -->
+                            <div class="w-full md:w-1/2 reveal">
+                                <div class="relative rounded-3xl overflow-hidden shadow-2xl h-80 md:h-96">
+                                    <img src="https://images.unsplash.com/photo-1513475382585-d06e58bcb0e0?q=80&w=1000&auto=format&fit=crop" class="w-full h-full object-cover transform hover:scale-105 transition duration-700">
+                                </div>
+                            </div>
+                            <!-- Quote Side -->
+                            <div class="w-full md:w-1/2 text-center md:text-left reveal" style="transition-delay: 200ms">
+                                <i data-lucide="quote" class="w-12 h-12 text-neerada-500 mb-6 mx-auto md:mx-0 opacity-80"></i>
+                                <blockquote class="text-4xl md:text-5xl font-serif text-neerada-950 italic leading-tight mb-6">
+                                    "Today a reader, tomorrow a leader."
+                                </blockquote>
+                                <cite class="text-lg text-neerada-600 font-sans tracking-widest uppercase font-bold not-italic">
+                                    — Margaret Fuller
+                                </cite>
+                            </div>
+                        </div>
+                    </div>
+                </section>
+
+                <footer class="bg-neerada-950 text-white py-12 border-t border-white/10 relative z-10">
                     <div class="max-w-7xl mx-auto px-6 flex flex-col md:flex-row justify-between items-center gap-6">
                         <div class="flex items-center gap-2 opacity-80">
                             <i data-lucide="copyright" class="w-4 h-4"></i>
