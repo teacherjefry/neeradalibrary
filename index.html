@@ -1470,11 +1470,19 @@
                             <i data-lucide="x-circle" class="w-6 h-6"></i> <span class="hidden sm:inline">Close</span>
                         </button>
                         
-                        <!-- Theme Switcher -->
-                        <div class="flex gap-2">
-                            ${Object.keys(readerThemes).map(t => `
-                                <button onclick="window.setReaderTheme('${t}')" class="w-6 h-6 rounded-full border border-gray-300 shadow-sm ${readerThemes[t].bg} ${state.readerTheme === t ? 'ring-2 ring-neerada-500' : ''}" title="${readerThemes[t].name}"></button>
-                            `).join('')}
+                        <div class="flex gap-4 items-center">
+                            <!-- Language Toggle Inside Reader -->
+                            <button onclick="window.toggleReaderLang()" class="flex items-center gap-2 bg-black/5 hover:bg-black/10 px-3 py-1.5 rounded-full transition text-sm font-bold ${currentTheme.text}">
+                                <i data-lucide="globe" class="w-4 h-4"></i>
+                                <span id="reader-lang-btn-text">${state.lang.toUpperCase()}</span>
+                            </button>
+
+                            <!-- Theme Switcher -->
+                            <div class="flex gap-2">
+                                ${Object.keys(readerThemes).map(t => `
+                                    <button onclick="window.setReaderTheme('${t}')" class="w-6 h-6 rounded-full border border-gray-300 shadow-sm ${readerThemes[t].bg} ${state.readerTheme === t ? 'ring-2 ring-neerada-500' : ''}" title="${readerThemes[t].name}"></button>
+                                `).join('')}
+                            </div>
                         </div>
 
                         <span class="text-sm font-mono opacity-60 ${currentTheme.text}" id="reader-counter">1/1</span>
@@ -1515,7 +1523,11 @@
         function openReader(id) {
             readerBook = state.books.find(b => b.id === id);
             if(!readerBook.pages || !readerBook.pages.length) return; // Silent fail
+            
+            // RESET TO FIRST PAGE ALWAYS
             readerPageIdx = 0;
+            
+            // Prepare UI
             updateReaderUI();
             
             // Render specific modal content
@@ -1543,6 +1555,21 @@
                 updateReaderUI(); // Restore content
                 lucide.createIcons();
             }
+        }
+
+        function toggleReaderLang() {
+            state.lang = state.lang === 'en' ? 'la' : 'en';
+            
+            // Update UI inside the reader
+            updateReaderUI();
+            
+            // Update the button text inside reader
+            const btnText = document.getElementById('reader-lang-btn-text');
+            if(btnText) btnText.innerText = state.lang.toUpperCase();
+
+            // Update the background app silently (re-render)
+            // Since the modal is attached to document.body, re-rendering app-root won't close it
+            render();
         }
 
         function updateReaderUI() {
@@ -1633,6 +1660,7 @@
         window.addCategory = addCategory;
         window.removeCategory = removeCategory;
         window.resizeImage = resizeImage;
+        window.toggleReaderLang = toggleReaderLang;
 
     </script>
 </body>
