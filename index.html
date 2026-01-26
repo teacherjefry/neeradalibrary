@@ -119,11 +119,11 @@
         }
         .tilt-content { transform: translateZ(40px); }
 
-        /* Scroll Reveal - MODIFIED: removed opacity 0 to prevent loading delay perception */
+        /* Scroll Reveal - Removed opacity 0 for instant load */
         .reveal {
-            /* opacity: 0; REMOVED for instant loading */
-            /* transform: translateY(30px); REMOVED */
-            /* transition: all 0.8s cubic-bezier(0.5, 0, 0, 1); REMOVED */
+            /* opacity: 0; */
+            /* transform: translateY(30px); */
+            /* transition: all 0.8s cubic-bezier(0.5, 0, 0, 1); */
         }
         .reveal.active {
             /* opacity: 1; */
@@ -287,16 +287,19 @@
         });
 
         function setupRealtimeListeners() {
-            const booksRef = doc(db, 'artifacts', appId, 'public', 'data', 'neerada_books', 'main');
+            // UPDATED: Listen to the whole collection of books, allowing unlimited documents (up to 1GB total DB limit)
+            const booksColRef = collection(db, 'artifacts', appId, 'public', 'data', 'neerada_books');
             const settingsRef = doc(db, 'artifacts', appId, 'public', 'data', 'neerada_settings', 'main');
 
-            onSnapshot(booksRef, (docSnap) => {
-                if (docSnap.exists()) {
-                    state.books = docSnap.data().items || [];
-                } else {
-                    state.books = initialBooks;
-                    setDoc(booksRef, { items: initialBooks });
-                }
+            onSnapshot(booksColRef, (snapshot) => {
+                const loadedBooks = [];
+                snapshot.forEach(doc => {
+                    // Ignore the old "main" document if it still exists from previous versions
+                    if (doc.id !== 'main') {
+                        loadedBooks.push({ id: doc.id, ...doc.data() });
+                    }
+                });
+                state.books = loadedBooks;
                 
                 if(document.getElementById('app-root').innerHTML.includes('animate-spin')) {
                     const storedView = localStorage.getItem('neerada_current_view');
@@ -317,13 +320,13 @@
                 // RESTORE READING SESSION IF ACTIVE
                 const savedReaderBookId = localStorage.getItem('neerada_reader_book');
                 if (savedReaderBookId) {
-                    const bookId = parseInt(savedReaderBookId);
-                    const book = state.books.find(b => b.id === bookId);
+                    // Note: savedReaderBookId is stored as string from ID, but in state.books ID is string now (doc.id)
+                    // or number if migrated. Let's handle both.
+                    const book = state.books.find(b => String(b.id) === savedReaderBookId);
                     if (book) {
                         const savedPage = localStorage.getItem('neerada_reader_page');
-                        // Ensure we don't open reader if it's already open to avoid flicker/reset
                         if(document.getElementById('reader-modal').classList.contains('hidden')) {
-                             openReader(bookId, savedPage ? parseInt(savedPage) : 0);
+                             openReader(book.id, savedPage ? parseInt(savedPage) : 0);
                         }
                     }
                 }
@@ -337,7 +340,6 @@
                     state.appSettings = { ...state.appSettings, ...saved };
                     if(saved.deptImages) state.appSettings.deptImages = {...state.appSettings.deptImages, ...saved.deptImages};
                     if(saved.footerText) state.appSettings.footerText = {...state.appSettings.footerText, ...saved.footerText};
-                    // Ensure categories exists for legacy data
                     if(!state.appSettings.categories) state.appSettings.categories = ["Fiction", "Action", "Horror", "Moral Stories", "Science", "History", "Kids"];
                     if(!state.appSettings.adminCode) state.appSettings.adminCode = "0000";
                 } else {
@@ -348,25 +350,40 @@
             }, (error) => console.error("Settings sync error:", error));
         }
 
-        function saveData() {
+        // --- SPLIT SAVE FUNCTIONS FOR RELIABILITY ---
+        // REMOVED: saveBooks() that saved the whole array.
+        // Replaced with per-document saving in saveBookFromEditor and deleteBook.
+
+        async function saveSettings() {
             if (!state.user) return;
-            const booksRef = doc(db, 'artifacts', appId, 'public', 'data', 'neerada_books', 'main');
             const settingsRef = doc(db, 'artifacts', appId, 'public', 'data', 'neerada_settings', 'main');
-            
-            setDoc(booksRef, { items: state.books });
-            setDoc(settingsRef, state.appSettings);
-            
-            localStorage.setItem('neerada_current_view', state.view);
-            applySettings();
+            try {
+                await setDoc(settingsRef, state.appSettings);
+                console.log("Settings saved to database.");
+                applySettings();
+            } catch (e) {
+                console.error("Error saving settings:", e);
+            }
         }
 
-        function resetSystem() {
+        async function resetSystem() {
             const code = prompt("Type 'RESET' to confirm erasing all system data and restoring factory defaults:");
             if (code === 'RESET') {
-                const booksRef = doc(db, 'artifacts', appId, 'public', 'data', 'neerada_books', 'main');
-                const settingsRef = doc(db, 'artifacts', appId, 'public', 'data', 'neerada_settings', 'main');
+                // Delete all books one by one from DB
+                for(const book of state.books) {
+                    try {
+                        await deleteDoc(doc(db, 'artifacts', appId, 'public', 'data', 'neerada_books', String(book.id)));
+                    } catch(e) { console.error("Error deleting book " + book.id, e); }
+                }
                 
-                state.books = initialBooks;
+                // Also try to delete legacy 'main' doc if it exists
+                try {
+                    await deleteDoc(doc(db, 'artifacts', appId, 'public', 'data', 'neerada_books', 'main'));
+                } catch(e) {}
+
+                state.books = []; // Clear local state
+                
+                // Reset Settings
                 state.appSettings = {
                     schoolName: "Neerada School",
                     logoUrl: null,
@@ -391,10 +408,9 @@
                     }
                 };
 
-                setDoc(booksRef, { items: state.books });
-                setDoc(settingsRef, state.appSettings);
+                await saveSettings();
                 
-                alert("System has been reset to factory settings.");
+                alert("System has been reset to factory settings (Empty Library).");
                 render();
             } else {
                 alert("Reset cancelled.");
@@ -964,7 +980,7 @@
             if (input.files && input.files[0]) {
                 resizeImage(input.files[0]).then(base64 => {
                     state.appSettings[key][index] = base64;
-                    saveData();
+                    saveSettings();
                     switchAdminTab('homepage');
                 });
             }
@@ -974,7 +990,7 @@
             if (input.files && input.files[0]) {
                 resizeImage(input.files[0]).then(base64 => {
                     state.appSettings[parentKey][childKey] = base64;
-                    saveData();
+                    saveSettings();
                     switchAdminTab('homepage');
                 });
             }
@@ -982,7 +998,7 @@
 
         function updateFooterText(key, value) {
             state.appSettings.footerText[key] = value;
-            saveData();
+            saveSettings();
         }
 
         // ... (Existing Book Editor Functions) ...
@@ -1204,7 +1220,7 @@
             const val = input.value.trim();
             if (val && !state.appSettings.categories.includes(val)) {
                 state.appSettings.categories.push(val);
-                saveData();
+                saveSettings();
                 switchAdminTab('settings');
             }
         }
@@ -1212,7 +1228,7 @@
         function removeCategory(val) {
             if(confirm(`Remove category "${val}"?`)) {
                 state.appSettings.categories = state.appSettings.categories.filter(c => c !== val);
-                saveData();
+                saveSettings();
                 switchAdminTab('settings');
             }
         }
@@ -1228,7 +1244,7 @@
             const answer = prompt("Security Question: What is your house number?");
             if(answer === "13") {
                 state.appSettings.adminCode = newCode;
-                saveData();
+                saveSettings();
                 alert("Admin code updated successfully.");
                 document.getElementById('new-admin-code').value = "";
             } else {
@@ -1355,7 +1371,7 @@
             }
         }
 
-        function saveBookFromEditor(e) {
+        async function saveBookFromEditor(e) {
             e.preventDefault();
             
             const title = document.getElementById('edit-title').value;
@@ -1383,17 +1399,18 @@
                 pages: newPages
             };
 
-            if (state.editingBookId) {
-                const idx = state.books.findIndex(b => b.id === state.editingBookId);
-                if(idx !== -1) state.books[idx] = { ...state.books[idx], ...bookData };
-            } else {
-                const newId = Date.now();
-                state.books.push({ id: newId, ...bookData });
-            }
+            const bookId = state.editingBookId ? state.editingBookId : Date.now();
+            const bookDocRef = doc(db, 'artifacts', appId, 'public', 'data', 'neerada_books', String(bookId));
 
-            saveData();
-            closeBookEditor();
-            switchAdminTab('books');
+            try {
+                await setDoc(bookDocRef, { id: bookId, ...bookData });
+                alert("Book saved successfully!");
+                closeBookEditor();
+                switchAdminTab('books');
+            } catch (err) {
+                console.error("Error saving book:", err);
+                alert("Failed to save book. Please try again.");
+            }
         }
 
         function closeBookEditor() {
@@ -1402,19 +1419,24 @@
             tempPageImages = [];
         }
 
-        function deleteBook(id) {
+        async function deleteBook(id) {
             // Using confirm here as it's an admin action, replacing with custom UI is complex for this prompt's constraints
             // but we wrap it to ensure it works
-            if(window.confirm('Delete this book permanently?')) {
-                state.books = state.books.filter(b => b.id !== id);
-                saveData();
-                switchAdminTab('books');
+            if(window.confirm('Delete this book permanently? This will remove it from the app and database.')) {
+                try {
+                    await deleteDoc(doc(db, 'artifacts', appId, 'public', 'data', 'neerada_books', String(id)));
+                    alert("Book deleted.");
+                    // The onSnapshot listener will automatically update the UI
+                } catch (err) {
+                    console.error("Error deleting book:", err);
+                    alert("Failed to delete book.");
+                }
             }
         }
 
         function updateSetting(key, value) {
             state.appSettings[key] = value;
-            saveData();
+            saveSettings();
         }
 
         function handleFileUpload(input, settingKey) {
@@ -1441,16 +1463,24 @@
             if(!fileInput.files.length) return; // Silent fail if no file
             
             const reader = new FileReader();
-            reader.onload = function(e) {
+            reader.onload = async function(e) {
                 try {
                     const data = JSON.parse(e.target.result);
                     if(data.books && data.settings) {
-                        state.books = data.books;
+                        // Import settings
                         state.appSettings = data.settings;
-                        saveData();
+                        await saveSettings();
+
+                        // Import books individually
+                        for (const book of data.books) {
+                             const bookRef = doc(db, 'artifacts', appId, 'public', 'data', 'neerada_books', String(book.id));
+                             await setDoc(bookRef, book);
+                        }
+                        
+                        alert("Import successful! Refreshing...");
                         switchAdminTab('books');
                     }
-                } catch(err) { console.error("Error parsing JSON"); }
+                } catch(err) { console.error("Error parsing JSON or importing", err); alert("Import failed."); }
             };
             reader.readAsText(fileInput.files[0]);
         }
