@@ -1,0 +1,1025 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Neerada Online Library</title>
+    
+    <!-- Favicon & Touch Icon Placeholders -->
+    <link rel="icon" type="image/png" href="https://lucide.dev/favicon.ico" id="dynamic-favicon">
+    <link rel="apple-touch-icon" href="https://lucide.dev/favicon.ico" id="dynamic-apple-icon">
+
+    <!-- Fonts: Plus Jakarta Sans (UI), Playfair Display (Aesthetic Headings) & Noto Sans (Content) -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Playfair+Display:ital,wght@0,400;0,600;0,700;1,400;1,600&family=Plus+Jakarta+Sans:wght@300;400;500;600;700;800&family=Noto+Sans+Lao:wght@100..900&family=Noto+Sans:wght@100..900&display=swap" rel="stylesheet">
+    
+    <!-- Tailwind CSS -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    
+    <!-- Lucide Icons -->
+    <script src="https://unpkg.com/lucide@latest"></script>
+
+    <script>
+        tailwind.config = {
+            theme: {
+                extend: {
+                    fontFamily: {
+                        sans: ['"Plus Jakarta Sans"', 'sans-serif'],
+                        serif: ['"Playfair Display"', 'serif'],
+                        app: ['"Noto Sans"', '"Noto Sans Lao"', 'sans-serif'],
+                    },
+                    colors: {
+                        neerada: {
+                            50: '#f0f4ff',
+                            100: '#e0eaff',
+                            200: '#c7d9fe',
+                            300: '#a3bffe',
+                            400: '#7a9dfc',
+                            500: '#527af6', // Primary Brand Color
+                            600: '#355aec',
+                            700: '#2645d5',
+                            800: '#2339ad',
+                            900: '#1e3a8a', // Deep Blue
+                            950: '#172554',
+                        },
+                        glass: {
+                            100: 'rgba(255, 255, 255, 0.1)',
+                            200: 'rgba(255, 255, 255, 0.2)',
+                            300: 'rgba(255, 255, 255, 0.3)',
+                        }
+                    },
+                    animation: {
+                        'float': 'float 6s ease-in-out infinite',
+                        'slide-up': 'slideUp 0.8s cubic-bezier(0.16, 1, 0.3, 1) forwards',
+                    },
+                    keyframes: {
+                        float: {
+                            '0%, 100%': { transform: 'translateY(0)' },
+                            '50%': { transform: 'translateY(-20px)' },
+                        },
+                        slideUp: {
+                            '0%': { opacity: 0, transform: 'translateY(40px)' },
+                            '100%': { opacity: 1, transform: 'translateY(0)' },
+                        }
+                    }
+                }
+            }
+        }
+    </script>
+
+    <style>
+        /* Base Styles */
+        body { @apply antialiased text-gray-800 bg-neerada-50; }
+        
+        /* Glassmorphism Classes */
+        .glass-panel {
+            background: rgba(255, 255, 255, 0.75);
+            backdrop-filter: blur(20px);
+            -webkit-backdrop-filter: blur(20px);
+            border: 1px solid rgba(255, 255, 255, 0.6);
+            box-shadow: 0 8px 32px rgba(0, 0, 0, 0.1);
+        }
+        
+        .glass-nav {
+            background: rgba(255, 255, 255, 0.85);
+            backdrop-filter: blur(12px);
+            border-bottom: 1px solid rgba(255, 255, 255, 0.5);
+        }
+
+        /* 3D Tilt Effect Container */
+        .tilt-card {
+            transform-style: preserve-3d;
+            transition: transform 0.1s ease-out;
+            will-change: transform;
+        }
+        
+        .tilt-content {
+            transform: translateZ(40px);
+        }
+
+        /* Scroll Reveal */
+        .reveal {
+            opacity: 0;
+            transform: translateY(30px);
+            transition: all 0.8s cubic-bezier(0.5, 0, 0, 1);
+        }
+        .reveal.active {
+            opacity: 1;
+            transform: translateY(0);
+        }
+
+        /* Custom Scrollbar */
+        ::-webkit-scrollbar { width: 8px; }
+        ::-webkit-scrollbar-track { background: #f1f1f1; }
+        ::-webkit-scrollbar-thumb { background: #c7d9fe; border-radius: 4px; }
+        ::-webkit-scrollbar-thumb:hover { background: #a3bffe; }
+
+        /* Utilities */
+        .hide-scroll::-webkit-scrollbar { display: none; }
+        .hide-scroll { -ms-overflow-style: none; scrollbar-width: none; }
+    </style>
+</head>
+<body>
+
+    <!-- APP ROOT -->
+    <div id="app-root" class="min-h-screen flex flex-col relative overflow-x-hidden">
+        <!-- Content injected via JS -->
+    </div>
+
+    <!-- JAVASCRIPT LOGIC -->
+    <script>
+        // --- STATE MANAGEMENT ---
+        const state = {
+            view: 'landing', // landing, app, admin-login, admin-dashboard
+            lang: 'en',
+            appSettings: {
+                schoolName: "Neerada School",
+                logoUrl: null, // will use default icon if null
+                faviconUrl: null
+            },
+            books: [], // Loaded from DB or LocalStorage
+            editingBookId: null // Track which book is being edited
+        };
+
+        // Initial Data (if localStorage is empty)
+        const initialBooks = [
+            { id: 1, title: "The Little Elephant", title_la: "ຊ້ານ້ອຍຜູ້ກ້າຫານ", author: "Somsanouk", level: "early", category: "fiction", coverColor: "bg-gradient-to-br from-pink-300 to-rose-300", desc: "A brave little elephant finds his way home.", desc_la: "ຊ້າງນ້ອຍຜູ້ກ້າຫານຊອກຫາທາງກັບບ້ານ.", pages: [{en:"Once upon a time...", la:"ກາລຄັ້ງໜຶ່ງ..."}] },
+            { id: 4, title: "The Rain Cycle", title_la: "ວົງຈອນຂອງຝົນ", author: "Dr. Science", level: "primary", category: "science", coverColor: "bg-gradient-to-br from-purple-300 to-indigo-300", desc: "Why does it rain? Learn about the water cycle.", desc_la: "ເປັນຫຍັງຝົນຈຶ່ງຕົກ? ຮຽນຮູ້ກ່ຽວກັບວົງຈອນນ້ຳ.", pages: [{en:"Rain comes from clouds.", la:"ຝົນມາຈາກເມກ."}] },
+            { id: 7, title: "History of Lan Xang", title_la: "ປະຫວັດສາດລ້ານຊ້າງ", author: "History Dept", level: "secondary", category: "history", coverColor: "bg-gradient-to-br from-blue-300 to-cyan-300", desc: "Origins of the Kingdom.", desc_la: "ຕົ້ນກຳເນີດຂອງອານາຈັກ.", pages: [{en:"Founded in 1353.", la:"ສ້າງຕັ້ງຂຶ້ນໃນປີ 1353."}] },
+        ];
+
+        // --- INIT ---
+        window.onload = function() {
+            loadData();
+            applySettings();
+            render();
+            lucide.createIcons();
+            
+            // Global Event for Tilt (Landing Page)
+            document.addEventListener('mousemove', handleTilt);
+            
+            // Scroll Observer
+            setupObserver();
+        };
+
+        // --- DATA PERSISTENCE ---
+        function loadData() {
+            const storedBooks = localStorage.getItem('neerada_books');
+            const storedSettings = localStorage.getItem('neerada_settings');
+            const storedView = localStorage.getItem('neerada_current_view'); // Restore View
+            
+            state.books = storedBooks ? JSON.parse(storedBooks) : initialBooks;
+            if(storedSettings) state.appSettings = JSON.parse(storedSettings);
+            if(storedView) state.view = storedView;
+        }
+
+        function saveData() {
+            localStorage.setItem('neerada_books', JSON.stringify(state.books));
+            localStorage.setItem('neerada_settings', JSON.stringify(state.appSettings));
+            applySettings();
+        }
+
+        function applySettings() {
+            // Update Favicon
+            if(state.appSettings.faviconUrl) {
+                document.getElementById('dynamic-favicon').href = state.appSettings.faviconUrl;
+                document.getElementById('dynamic-apple-icon').href = state.appSettings.faviconUrl;
+            }
+        }
+
+        // --- ROUTING / NAVIGATION ---
+        function navigate(view) {
+            state.view = view;
+            localStorage.setItem('neerada_current_view', view); // Save View
+            window.scrollTo(0,0);
+            render();
+            lucide.createIcons();
+            setupObserver(); // Re-attach observer for landing page
+        }
+
+        // --- RENDER ENGINE ---
+        function render() {
+            const root = document.getElementById('app-root');
+            root.innerHTML = ''; // Clear
+
+            if (state.view === 'landing') root.innerHTML = renderLandingPage();
+            else if (state.view === 'app') root.innerHTML = renderUserApp();
+            else if (state.view === 'admin-login') root.innerHTML = renderAdminLogin();
+            else if (state.view === 'admin-dashboard') root.innerHTML = renderAdminDashboard();
+            
+            // Re-bind Events after HTML injection
+            if(state.view === 'admin-dashboard') bindAdminEvents();
+        }
+
+        // --- VIEW: LANDING PAGE ---
+        function renderLandingPage() {
+            const year = new Date().getFullYear();
+            return `
+                <!-- Landing Nav -->
+                <nav class="fixed w-full z-50 glass-nav transition-all duration-300 shadow-sm">
+                    <div class="max-w-7xl mx-auto px-6 h-20 flex items-center justify-between">
+                        <div class="flex items-center gap-3">
+                            <div class="w-10 h-10 rounded-xl bg-gradient-to-tr from-neerada-600 to-neerada-400 flex items-center justify-center text-white shadow-lg shadow-neerada-500/30">
+                                ${state.appSettings.logoUrl ? `<img src="${state.appSettings.logoUrl}" class="w-full h-full object-cover rounded-xl">` : `<i data-lucide="library" class="w-6 h-6"></i>`}
+                            </div>
+                            <span class="font-bold text-xl tracking-tight text-neerada-900">Neerada</span>
+                        </div>
+                        <div class="hidden md:flex items-center gap-8 font-medium text-gray-700">
+                            <a href="#features" class="hover:text-neerada-600 transition">Features</a>
+                            <a href="#quote" class="hover:text-neerada-600 transition">Inspiration</a>
+                            <a href="#gallery" class="hover:text-neerada-600 transition">Gallery</a>
+                            <button onclick="navigate('app')" class="px-6 py-2.5 rounded-full bg-neerada-600 text-white font-semibold shadow-lg shadow-neerada-600/30 hover:bg-neerada-700 hover:scale-105 transition-all duration-300">
+                                Enter Library
+                            </button>
+                        </div>
+                    </div>
+                </nav>
+
+                <!-- Hero Section with Background Image & Light Glassmorphism -->
+                <section class="relative pt-32 pb-20 lg:pt-48 lg:pb-32 overflow-hidden min-h-[90vh] flex items-center">
+                    <!-- Background Image -->
+                    <div class="absolute inset-0 z-0">
+                        <img src="https://images.unsplash.com/photo-1541963463532-d68292c34b19?q=80&w=2000&auto=format&fit=crop" class="w-full h-full object-cover">
+                    </div>
+
+                    <div class="max-w-7xl mx-auto px-6 grid lg:grid-cols-2 gap-12 items-center relative z-10">
+                        <div class="glass-panel p-10 rounded-3xl animate-slide-up shadow-2xl">
+                            <!-- Hero Title: Aesthetic Font Style & New Color -->
+                            <h1 class="leading-tight mb-6">
+                                <span class="font-serif italic font-semibold text-6xl md:text-8xl text-neerada-950 block mb-2">Neerada</span>
+                                <span class="font-sans text-transparent bg-clip-text bg-gradient-to-r from-neerada-600 to-purple-600 text-3xl md:text-5xl font-bold tracking-widest uppercase block">
+                                    Online Library
+                                </span>
+                            </h1>
+
+                            <p class="text-lg text-gray-700 max-w-lg leading-relaxed font-medium mb-8">
+                                A comprehensive digital resource empowering students from Kindergarten through Secondary education.
+                            </p>
+                            
+                            <div class="flex flex-col sm:flex-row gap-4">
+                                <button onclick="navigate('app')" class="px-8 py-4 rounded-xl bg-neerada-900 text-white font-bold shadow-lg shadow-neerada-900/20 hover:bg-neerada-800 transition-all transform hover:-translate-y-1">
+                                    Start Reading
+                                </button>
+                                <button onclick="navigate('admin-login')" class="px-8 py-4 rounded-xl bg-white border border-gray-200 text-neerada-900 font-bold hover:bg-gray-50 transition-all">
+                                    Admin Portal
+                                </button>
+                            </div>
+                        </div>
+
+                        <!-- 3D Tilt Card Mockup (Adjusted for light theme) -->
+                        <div class="relative perspective-container flex justify-center lg:justify-end hidden lg:flex">
+                            <div id="hero-card" class="tilt-card w-full max-w-md aspect-[4/3] glass-panel rounded-3xl p-6 relative group cursor-pointer border-white/40">
+                                <!-- Inner Content with Parallax -->
+                                <div class="tilt-content flex flex-col h-full text-gray-800">
+                                    <div class="flex items-center justify-between mb-6">
+                                        <div class="flex gap-2">
+                                            <div class="w-3 h-3 rounded-full bg-red-400"></div>
+                                            <div class="w-3 h-3 rounded-full bg-yellow-400"></div>
+                                            <div class="w-3 h-3 rounded-full bg-green-400"></div>
+                                        </div>
+                                        <div class="text-xs font-mono text-gray-400">library_status: active</div>
+                                    </div>
+                                    
+                                    <div class="flex-1 grid grid-cols-2 gap-4">
+                                        <div class="bg-gradient-to-br from-pink-50 to-rose-100 rounded-2xl p-4 shadow-sm transform transition hover:scale-105 border border-pink-100">
+                                            <div class="w-10 h-10 bg-white rounded-xl flex items-center justify-center mb-3 text-pink-500 shadow-sm">
+                                                <i data-lucide="smile" class="w-6 h-6"></i>
+                                            </div>
+                                            <div class="font-bold text-gray-800">Kindergarten</div>
+                                            <div class="text-xs text-gray-500">Early Years</div>
+                                        </div>
+                                        <div class="bg-gradient-to-br from-blue-50 to-cyan-100 rounded-2xl p-4 shadow-sm transform transition hover:scale-105 border border-blue-100" style="transition-delay: 50ms">
+                                            <div class="w-10 h-10 bg-white rounded-xl flex items-center justify-center mb-3 text-blue-500 shadow-sm">
+                                                <i data-lucide="graduation-cap" class="w-6 h-6"></i>
+                                            </div>
+                                            <div class="font-bold text-gray-800">Secondary</div>
+                                            <div class="text-xs text-gray-500">Academic</div>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </section>
+
+                <!-- Dedicated Quote Section (Parallax) -->
+                <section id="quote" class="relative py-32 bg-fixed bg-cover bg-center overflow-hidden" style="background-image: url('https://images.unsplash.com/photo-1481627834876-b7833e8f5570?q=80&w=2000&auto=format&fit=crop');">
+                    <div class="absolute inset-0 bg-neerada-950/70"></div>
+                    <div class="max-w-4xl mx-auto px-6 relative z-10 text-center reveal">
+                        <i data-lucide="quote" class="w-12 h-12 text-neerada-400 mx-auto mb-6 opacity-80"></i>
+                        <blockquote class="text-4xl md:text-5xl font-serif text-white italic leading-tight mb-8">
+                            "Today a reader, tomorrow a leader."
+                        </blockquote>
+                        <cite class="text-lg text-neerada-200 font-sans tracking-widest uppercase font-bold not-italic">
+                            — Margaret Fuller
+                        </cite>
+                    </div>
+                </section>
+
+                <!-- Features Grid -->
+                <section id="features" class="py-24 bg-white">
+                    <div class="max-w-7xl mx-auto px-6">
+                        <div class="text-center mb-16 reveal">
+                            <h2 class="text-3xl lg:text-4xl font-bold text-neerada-950 mb-4">Why Neerada Library?</h2>
+                            <p class="text-gray-500 max-w-2xl mx-auto">Providing a world-class digital learning environment.</p>
+                        </div>
+
+                        <div class="grid md:grid-cols-3 gap-8">
+                            <!-- Feature 1 -->
+                            <div class="p-8 rounded-3xl bg-neerada-50 border border-neerada-100 hover:border-neerada-300 transition-all reveal">
+                                <div class="w-14 h-14 bg-neerada-600 rounded-2xl flex items-center justify-center text-white mb-6 shadow-lg shadow-neerada-500/20">
+                                    <i data-lucide="globe" class="w-7 h-7"></i>
+                                </div>
+                                <h3 class="text-xl font-bold mb-3">Bilingual Support</h3>
+                                <p class="text-gray-600 leading-relaxed">Instantly toggle between Lao and English interface and content for seamless language acquisition.</p>
+                            </div>
+
+                            <!-- Feature 2 -->
+                            <div class="p-8 rounded-3xl bg-neerada-50 border border-neerada-100 hover:border-neerada-300 transition-all reveal" style="transition-delay: 100ms">
+                                <div class="w-14 h-14 bg-purple-600 rounded-2xl flex items-center justify-center text-white mb-6 shadow-lg shadow-purple-500/20">
+                                    <i data-lucide="layers" class="w-7 h-7"></i>
+                                </div>
+                                <h3 class="text-xl font-bold mb-3">3 Departments</h3>
+                                <p class="text-gray-600 leading-relaxed">Curated content specifically for Kindergarten, Primary, and Secondary students.</p>
+                            </div>
+
+                            <!-- Feature 3 -->
+                            <div class="p-8 rounded-3xl bg-neerada-50 border border-neerada-100 hover:border-neerada-300 transition-all reveal" style="transition-delay: 200ms">
+                                <div class="w-14 h-14 bg-pink-500 rounded-2xl flex items-center justify-center text-white mb-6 shadow-lg shadow-pink-500/20">
+                                    <i data-lucide="book-open" class="w-7 h-7"></i>
+                                </div>
+                                <h3 class="text-xl font-bold mb-3">Instant Access</h3>
+                                <p class="text-gray-600 leading-relaxed">No heavy downloads. Works on any device, from tablets to desktops, with fast loading speeds.</p>
+                            </div>
+                        </div>
+                    </div>
+                </section>
+
+                <!-- Gallery Section -->
+                <section id="gallery" class="py-24 bg-gray-50">
+                    <div class="max-w-7xl mx-auto px-6">
+                         <div class="text-center mb-12 reveal">
+                            <h2 class="text-3xl font-bold text-neerada-950">Our Library Gallery</h2>
+                            <p class="text-gray-500 mt-2">A glimpse into our learning spaces.</p>
+                        </div>
+                        <div class="grid grid-cols-2 md:grid-cols-4 gap-4 auto-rows-[200px]">
+                             <div class="col-span-2 row-span-2 rounded-2xl overflow-hidden shadow-lg reveal group relative">
+                                <img src="https://images.unsplash.com/photo-1521587760476-6c12a4b040da?q=80&w=800&auto=format&fit=crop" class="w-full h-full object-cover transition duration-700 group-hover:scale-110">
+                                <div class="absolute inset-0 bg-gradient-to-t from-black/60 to-transparent flex flex-col justify-end p-6">
+                                    <span class="text-white font-bold text-lg">Quiet Reading Zones</span>
+                                    <p class="text-white/90 text-sm mt-1">Peaceful corners designed for deep focus and comfortable reading.</p>
+                                </div>
+                             </div>
+                             <div class="rounded-2xl overflow-hidden shadow-lg reveal group relative" style="transition-delay: 100ms">
+                                <img src="https://images.unsplash.com/photo-1512820790803-83ca734da794?q=80&w=800&auto=format&fit=crop" class="w-full h-full object-cover transition duration-700 group-hover:scale-110">
+                             </div>
+                             <div class="rounded-2xl overflow-hidden shadow-lg reveal group relative" style="transition-delay: 200ms">
+                                <img src="https://images.unsplash.com/photo-1503454537195-1dcabb73ffb9?q=80&w=800&auto=format&fit=crop" class="w-full h-full object-cover transition duration-700 group-hover:scale-110">
+                             </div>
+                             <div class="col-span-2 rounded-2xl overflow-hidden shadow-lg reveal group relative" style="transition-delay: 300ms">
+                                <img src="https://images.unsplash.com/photo-1457369804613-52c61a468e7d?q=80&w=800&auto=format&fit=crop" class="w-full h-full object-cover transition duration-700 group-hover:scale-110">
+                                <div class="absolute inset-0 bg-gradient-to-t from-black/60 to-transparent flex flex-col justify-end p-6">
+                                    <span class="text-white font-bold text-lg">Diverse Collection</span>
+                                    <p class="text-white/90 text-sm mt-1">Thousands of titles across genres, languages, and reading levels.</p>
+                                </div>
+                             </div>
+                        </div>
+                    </div>
+                </section>
+
+                <footer class="bg-neerada-950 text-white py-12 border-t border-white/10">
+                    <div class="max-w-7xl mx-auto px-6 flex flex-col md:flex-row justify-between items-center gap-6">
+                        <div class="flex items-center gap-2 opacity-80">
+                            <i data-lucide="copyright" class="w-4 h-4"></i>
+                            <span class="text-sm font-sans">Copyright ${year} ${state.appSettings.schoolName}. All rights reserved.</span>
+                        </div>
+                        <div class="flex gap-6 text-sm text-neerada-200">
+                            <a href="#" class="hover:text-white transition">Privacy Policy</a>
+                            <a href="#" class="hover:text-white transition">Terms of Service</a>
+                            <button onclick="navigate('admin-login')" class="hover:text-white transition">Admin</button>
+                        </div>
+                    </div>
+                </footer>
+            `;
+        }
+
+        // --- VIEW: USER APP ---
+        function renderUserApp() {
+            const year = new Date().getFullYear();
+            const t = translations[state.lang];
+            
+            return `
+                <div class="font-app bg-gray-50 min-h-screen flex flex-col">
+                    <nav class="bg-neerada-900 text-white shadow-lg sticky top-0 z-40">
+                        <div class="max-w-7xl mx-auto px-4 h-16 flex justify-between items-center">
+                            <div class="flex items-center gap-2 cursor-pointer" onclick="navigate('landing')">
+                                ${state.appSettings.logoUrl ? `<img src="${state.appSettings.logoUrl}" class="w-8 h-8 rounded bg-white">` : `<i data-lucide="library" class="w-8 h-8 text-neerada-400"></i>`}
+                                <div class="flex flex-col">
+                                    <span class="font-bold text-lg leading-tight">Neerada</span>
+                                    <span class="text-xs text-neerada-300 uppercase tracking-wider">Online Library</span>
+                                </div>
+                            </div>
+                            <button onclick="toggleLang()" class="flex items-center gap-2 bg-white/10 hover:bg-white/20 px-3 py-1.5 rounded-full transition text-sm border border-white/20">
+                                <i data-lucide="globe" class="w-4 h-4"></i>
+                                <span>${state.lang.toUpperCase()}</span>
+                            </button>
+                        </div>
+                    </nav>
+
+                    <main class="flex-grow container mx-auto px-4 py-8">
+                        <div class="text-center mb-10">
+                            <h1 class="text-3xl md:text-4xl font-bold text-neerada-900 mb-2">${t.welcome}</h1>
+                            <p class="text-gray-600">${t.subtitle}</p>
+                        </div>
+
+                        <!-- Department Cards with Images -->
+                        <div class="grid md:grid-cols-3 gap-6 mb-12">
+                            ${renderLevelCard('early', 'smile', 'https://images.unsplash.com/photo-1503454537195-1dcabb73ffb9?q=80&w=800&auto=format&fit=crop', t.levelEarly, t.earlyDesc)}
+                            ${renderLevelCard('primary', 'book', 'https://images.unsplash.com/photo-1497633762265-9d179a990aa6?q=80&w=800&auto=format&fit=crop', t.levelPrimary, t.primaryDesc)}
+                            ${renderLevelCard('secondary', 'graduation-cap', 'https://images.unsplash.com/photo-1456513080510-7bf3a84b82f8?q=80&w=800&auto=format&fit=crop', t.levelSecondary, t.secondaryDesc)}
+                        </div>
+
+                        <!-- Catalog Section (Display all initially or filtered) -->
+                        <div id="catalog-area">
+                             <h2 class="text-2xl font-bold text-gray-800 mb-6 border-b pb-2">Featured Books</h2>
+                             <div class="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-5 gap-6">
+                                ${state.books.map(b => renderBookCard(b)).join('')}
+                             </div>
+                        </div>
+                    </main>
+
+                    <footer class="bg-gray-800 text-gray-400 py-6 text-center text-sm font-app">
+                        © ${year} ${state.appSettings.schoolName}.
+                    </footer>
+                </div>
+                
+                ${renderReaderModal()}
+            `;
+        }
+
+        function renderLevelCard(level, icon, imgUrl, title, desc) {
+            return `
+                <div onclick="filterAppLevel('${level}')" class="relative overflow-hidden rounded-2xl shadow-md hover:shadow-xl transition-all duration-300 cursor-pointer group h-64 border border-gray-200">
+                    <!-- Background Image -->
+                    <div class="absolute inset-0 bg-cover bg-center transition-transform duration-700 group-hover:scale-110" style="background-image: url('${imgUrl}');"></div>
+                    
+                    <!-- Gradient Overlay for Readability -->
+                    <div class="absolute inset-0 bg-gradient-to-t from-black/90 via-black/40 to-transparent"></div>
+
+                    <!-- Content -->
+                    <div class="absolute bottom-0 left-0 p-6 text-white w-full">
+                        <div class="w-12 h-12 bg-white/20 backdrop-blur-md rounded-xl flex items-center justify-center mb-3 group-hover:bg-neerada-500 transition">
+                            <i data-lucide="${icon}" class="w-6 h-6"></i>
+                        </div>
+                        <h3 class="font-bold text-2xl mb-1">${title}</h3>
+                        <p class="text-sm text-gray-200 opacity-90 line-clamp-2">${desc}</p>
+                    </div>
+                </div>
+            `;
+        }
+
+        function renderBookCard(book) {
+            const title = state.lang === 'en' ? book.title : book.title_la;
+            return `
+                <div onclick="openReader(${book.id})" class="bg-white rounded-xl shadow-sm hover:shadow-lg transition cursor-pointer flex flex-col h-full overflow-hidden group border border-gray-100">
+                    <div class="h-48 ${book.coverColor} flex items-center justify-center p-4 relative">
+                        <span class="text-white font-bold text-4xl drop-shadow-md select-none">${title.charAt(0)}</span>
+                        <div class="absolute inset-0 bg-black/0 group-hover:bg-black/10 transition"></div>
+                    </div>
+                    <div class="p-3 flex flex-col flex-grow">
+                        <h4 class="font-bold text-gray-900 leading-tight line-clamp-2 mb-1 text-sm">${title}</h4>
+                        <p class="text-xs text-gray-500 mb-2">${book.author}</p>
+                        <span class="mt-auto inline-block px-2 py-1 rounded bg-gray-100 text-gray-500 text-[10px] uppercase font-bold self-start">${book.category}</span>
+                    </div>
+                </div>
+            `;
+        }
+
+        // --- VIEW: ADMIN LOGIN ---
+        function renderAdminLogin() {
+            return `
+                <div class="min-h-screen flex items-center justify-center bg-gray-100 px-4">
+                    <div class="bg-white p-8 rounded-2xl shadow-xl w-full max-w-md">
+                        <div class="text-center mb-8">
+                            <div class="w-12 h-12 bg-neerada-900 rounded-lg flex items-center justify-center text-white mx-auto mb-4">
+                                <i data-lucide="lock" class="w-6 h-6"></i>
+                            </div>
+                            <h2 class="text-2xl font-bold text-gray-900">Admin Portal</h2>
+                            <p class="text-sm text-gray-500">Manage library content and settings</p>
+                        </div>
+                        <form onsubmit="event.preventDefault(); navigate('admin-dashboard');" class="space-y-4">
+                            <div>
+                                <label class="block text-sm font-medium text-gray-700 mb-1">Password</label>
+                                <input type="password" class="w-full px-4 py-2 rounded-lg border border-gray-300 focus:ring-2 focus:ring-neerada-500 outline-none" placeholder="Enter admin password">
+                                <p class="text-xs text-gray-400 mt-1">(Mock Login: Any password works)</p>
+                            </div>
+                            <button type="submit" class="w-full bg-neerada-600 text-white py-2.5 rounded-lg font-bold hover:bg-neerada-700 transition">
+                                Login to Dashboard
+                            </button>
+                        </form>
+                        <div class="mt-6 text-center">
+                            <button onclick="navigate('landing')" class="text-sm text-gray-500 hover:text-neerada-600">Back to Home</button>
+                        </div>
+                    </div>
+                </div>
+            `;
+        }
+
+        // --- VIEW: ADMIN DASHBOARD ---
+        function renderAdminDashboard() {
+            return `
+                <div class="min-h-screen bg-gray-50 flex flex-col">
+                    <!-- Admin Header -->
+                    <header class="bg-white border-b border-gray-200 px-6 py-4 flex justify-between items-center sticky top-0 z-30">
+                        <div class="flex items-center gap-3">
+                            <div class="bg-neerada-100 p-2 rounded-lg text-neerada-600"><i data-lucide="layout-dashboard" class="w-5 h-5"></i></div>
+                            <h1 class="font-bold text-lg text-gray-800">Admin Dashboard</h1>
+                        </div>
+                        <div class="flex gap-3">
+                            <button onclick="navigate('app')" class="px-4 py-2 text-sm text-gray-600 hover:bg-gray-100 rounded-lg">View Site</button>
+                            <button onclick="navigate('landing')" class="px-4 py-2 text-sm text-red-600 hover:bg-red-50 rounded-lg">Logout</button>
+                        </div>
+                    </header>
+
+                    <div class="flex-grow max-w-6xl mx-auto w-full p-6 grid lg:grid-cols-4 gap-6">
+                        <!-- Sidebar Navigation -->
+                        <div class="lg:col-span-1 space-y-2">
+                            <button onclick="switchAdminTab('books')" class="w-full text-left px-4 py-3 rounded-xl bg-neerada-600 text-white font-medium shadow-md flex items-center gap-2" id="tab-btn-books">
+                                <i data-lucide="book" class="w-4 h-4"></i> Manage Stories
+                            </button>
+                            <button onclick="switchAdminTab('settings')" class="w-full text-left px-4 py-3 rounded-xl hover:bg-white text-gray-600 font-medium transition flex items-center gap-2" id="tab-btn-settings">
+                                <i data-lucide="settings" class="w-4 h-4"></i> School Settings
+                            </button>
+                            <button onclick="switchAdminTab('backup')" class="w-full text-left px-4 py-3 rounded-xl hover:bg-white text-gray-600 font-medium transition flex items-center gap-2" id="tab-btn-backup">
+                                <i data-lucide="database" class="w-4 h-4"></i> Backup / Restore
+                            </button>
+                        </div>
+
+                        <!-- Main Content Area -->
+                        <div class="lg:col-span-3 bg-white rounded-2xl shadow-sm border border-gray-200 p-6 min-h-[500px]" id="admin-content-area">
+                            ${renderAdminBooksTab()} 
+                        </div>
+                    </div>
+                </div>
+                
+                ${renderBookEditorModal()}
+            `;
+        }
+
+        // --- ADMIN SUB-VIEWS ---
+        function renderAdminBooksTab() {
+            return `
+                <div class="flex justify-between items-center mb-6">
+                    <h2 class="text-xl font-bold">Library Content</h2>
+                    <button onclick="openBookEditor()" class="bg-green-600 hover:bg-green-700 text-white px-4 py-2 rounded-lg text-sm font-medium flex items-center gap-2">
+                        <i data-lucide="plus" class="w-4 h-4"></i> Add Story
+                    </button>
+                </div>
+                <div class="overflow-x-auto">
+                    <table class="w-full text-left text-sm text-gray-600">
+                        <thead class="bg-gray-50 text-gray-700 font-bold uppercase text-xs">
+                            <tr>
+                                <th class="px-4 py-3 rounded-l-lg">ID</th>
+                                <th class="px-4 py-3">Title</th>
+                                <th class="px-4 py-3">Level</th>
+                                <th class="px-4 py-3 text-right rounded-r-lg">Actions</th>
+                            </tr>
+                        </thead>
+                        <tbody class="divide-y divide-gray-100">
+                            ${state.books.map(b => `
+                                <tr class="hover:bg-gray-50 transition">
+                                    <td class="px-4 py-3 font-mono text-xs">#${b.id}</td>
+                                    <td class="px-4 py-3 font-medium text-gray-900">${b.title} <span class="text-xs text-gray-400 font-normal block">${b.title_la}</span></td>
+                                    <td class="px-4 py-3">
+                                        <span class="bg-blue-100 text-blue-700 px-2 py-1 rounded text-xs uppercase font-bold">
+                                            ${b.level === 'early' ? 'Kindergarten' : b.level}
+                                        </span>
+                                    </td>
+                                    <td class="px-4 py-3 text-right flex justify-end gap-2">
+                                        <button onclick="openBookEditor(${b.id})" class="text-neerada-600 hover:bg-neerada-50 p-2 rounded"><i data-lucide="edit" class="w-4 h-4"></i></button>
+                                        <button onclick="deleteBook(${b.id})" class="text-red-500 hover:bg-red-50 p-2 rounded"><i data-lucide="trash-2" class="w-4 h-4"></i></button>
+                                    </td>
+                                </tr>
+                            `).join('')}
+                        </tbody>
+                    </table>
+                </div>
+            `;
+        }
+
+        function renderBookEditorModal() {
+            return `
+                <div id="book-editor-modal" class="fixed inset-0 bg-black/50 z-50 hidden flex items-center justify-center p-4 backdrop-blur-sm">
+                    <div class="bg-white rounded-2xl shadow-2xl w-full max-w-2xl max-h-[90vh] overflow-y-auto">
+                        <div class="p-6 border-b flex justify-between items-center">
+                            <h3 class="text-xl font-bold" id="editor-title">Add New Story</h3>
+                            <button onclick="closeBookEditor()" class="p-2 hover:bg-gray-100 rounded-full"><i data-lucide="x" class="w-5 h-5"></i></button>
+                        </div>
+                        <form onsubmit="saveBookFromEditor(event)" class="p-6 space-y-4">
+                            <div class="grid grid-cols-2 gap-4">
+                                <div>
+                                    <label class="block text-sm font-bold text-gray-700 mb-1">Title (English)</label>
+                                    <input type="text" id="edit-title" required class="w-full border rounded-lg px-3 py-2 focus:ring-2 focus:ring-neerada-500 outline-none">
+                                </div>
+                                <div>
+                                    <label class="block text-sm font-bold text-gray-700 mb-1">Title (Lao)</label>
+                                    <input type="text" id="edit-title-la" required class="w-full border rounded-lg px-3 py-2 focus:ring-2 focus:ring-neerada-500 outline-none">
+                                </div>
+                            </div>
+                            
+                            <div class="grid grid-cols-2 gap-4">
+                                <div>
+                                    <label class="block text-sm font-bold text-gray-700 mb-1">Department (Level)</label>
+                                    <select id="edit-level" class="w-full border rounded-lg px-3 py-2 focus:ring-2 focus:ring-neerada-500 outline-none bg-white">
+                                        <option value="early">Kindergarten (Pre-K - G2)</option>
+                                        <option value="primary">Primary (G3 - G5)</option>
+                                        <option value="secondary">Secondary (G6 - G12)</option>
+                                    </select>
+                                </div>
+                                <div>
+                                    <label class="block text-sm font-bold text-gray-700 mb-1">Category</label>
+                                    <select id="edit-category" class="w-full border rounded-lg px-3 py-2 focus:ring-2 focus:ring-neerada-500 outline-none bg-white">
+                                        <option value="fiction">Fiction</option>
+                                        <option value="science">Science</option>
+                                        <option value="history">History</option>
+                                    </select>
+                                </div>
+                            </div>
+
+                            <div>
+                                <label class="block text-sm font-bold text-gray-700 mb-1">Author</label>
+                                <input type="text" id="edit-author" required class="w-full border rounded-lg px-3 py-2 focus:ring-2 focus:ring-neerada-500 outline-none">
+                            </div>
+
+                            <div>
+                                <label class="block text-sm font-bold text-gray-700 mb-1">Description (English)</label>
+                                <textarea id="edit-desc" rows="2" class="w-full border rounded-lg px-3 py-2 focus:ring-2 focus:ring-neerada-500 outline-none"></textarea>
+                            </div>
+
+                            <!-- Simplified Content for Prototype -->
+                            <div>
+                                <label class="block text-sm font-bold text-gray-700 mb-1">Content (Page 1 Text)</label>
+                                <textarea id="edit-content-en" rows="2" placeholder="English text..." class="w-full border rounded-lg px-3 py-2 mb-2 focus:ring-2 focus:ring-neerada-500 outline-none"></textarea>
+                                <textarea id="edit-content-la" rows="2" placeholder="Lao text..." class="w-full border rounded-lg px-3 py-2 focus:ring-2 focus:ring-neerada-500 outline-none"></textarea>
+                            </div>
+
+                            <div class="pt-4 flex justify-end gap-3">
+                                <button type="button" onclick="closeBookEditor()" class="px-4 py-2 text-gray-600 hover:bg-gray-100 rounded-lg">Cancel</button>
+                                <button type="submit" class="px-6 py-2 bg-neerada-600 text-white rounded-lg hover:bg-neerada-700 font-bold">Save Book</button>
+                            </div>
+                        </form>
+                    </div>
+                </div>
+            `;
+        }
+
+        function renderAdminSettingsTab() {
+            return `
+                <h2 class="text-xl font-bold mb-6">School Branding</h2>
+                <div class="space-y-6 max-w-lg">
+                    <div>
+                        <label class="block text-sm font-bold text-gray-700 mb-2">School Name</label>
+                        <input type="text" id="setting-name" value="${state.appSettings.schoolName}" class="w-full border rounded-lg px-4 py-2" onchange="updateSetting('schoolName', this.value)">
+                    </div>
+                    
+                    <div>
+                        <label class="block text-sm font-bold text-gray-700 mb-2">School Logo (Upload Image)</label>
+                        <div class="flex items-center gap-4">
+                            <div class="w-16 h-16 bg-gray-100 rounded-lg flex items-center justify-center overflow-hidden border">
+                                ${state.appSettings.logoUrl ? `<img src="${state.appSettings.logoUrl}" class="w-full h-full object-cover">` : `<i data-lucide="image" class="text-gray-400"></i>`}
+                            </div>
+                            <input type="file" accept="image/*" onchange="handleFileUpload(this, 'logoUrl')" class="text-sm text-gray-500 file:mr-4 file:py-2 file:px-4 file:rounded-full file:border-0 file:text-sm file:font-semibold file:bg-neerada-50 file:text-neerada-700 hover:file:bg-neerada-100">
+                        </div>
+                    </div>
+
+                    <div>
+                        <label class="block text-sm font-bold text-gray-700 mb-2">Favicon / Touch Icon</label>
+                        <div class="flex items-center gap-4">
+                            <div class="w-10 h-10 bg-gray-100 rounded-lg flex items-center justify-center overflow-hidden border">
+                                ${state.appSettings.faviconUrl ? `<img src="${state.appSettings.faviconUrl}" class="w-full h-full object-cover">` : `<i data-lucide="globe" class="text-gray-400"></i>`}
+                            </div>
+                            <input type="file" accept="image/*" onchange="handleFileUpload(this, 'faviconUrl')" class="text-sm text-gray-500 file:mr-4 file:py-2 file:px-4 file:rounded-full file:border-0 file:text-sm file:font-semibold file:bg-neerada-50 file:text-neerada-700 hover:file:bg-neerada-100">
+                        </div>
+                    </div>
+                    
+                    <div class="pt-4 border-t">
+                        <p class="text-xs text-gray-500"><i data-lucide="info" class="w-3 h-3 inline"></i> Changes are saved automatically to your browser.</p>
+                    </div>
+                </div>
+            `;
+        }
+
+        function renderAdminBackupTab() {
+            return `
+                <h2 class="text-xl font-bold mb-6">Database Management</h2>
+                <div class="grid md:grid-cols-2 gap-6">
+                    <div class="border rounded-2xl p-6 bg-neerada-50">
+                        <div class="w-10 h-10 bg-blue-100 text-blue-600 rounded-full flex items-center justify-center mb-4"><i data-lucide="download" class="w-5 h-5"></i></div>
+                        <h3 class="font-bold text-gray-800">Export Data</h3>
+                        <p class="text-sm text-gray-600 mb-4 mt-2">Download a JSON file containing all books and settings.</p>
+                        <button onclick="exportData()" class="bg-neerada-600 text-white px-4 py-2 rounded-lg text-sm font-medium hover:bg-neerada-700">Download JSON</button>
+                    </div>
+
+                    <div class="border rounded-2xl p-6 bg-orange-50">
+                        <div class="w-10 h-10 bg-orange-100 text-orange-600 rounded-full flex items-center justify-center mb-4"><i data-lucide="upload" class="w-5 h-5"></i></div>
+                        <h3 class="font-bold text-gray-800">Import Data</h3>
+                        <p class="text-sm text-gray-600 mb-4 mt-2">Restore from a previously downloaded JSON file. ⚠️ Overwrites current data.</p>
+                        <input type="file" accept=".json" id="import-file" class="block w-full text-sm text-gray-500 file:mr-4 file:py-2 file:px-4 file:rounded-full file:border-0 file:text-sm file:font-semibold file:bg-orange-100 file:text-orange-700 hover:file:bg-orange-200 mb-2">
+                        <button onclick="importData()" class="text-orange-700 text-sm font-bold underline">Process Import</button>
+                    </div>
+                </div>
+            `;
+        }
+
+        // --- LOGIC: ADMIN FUNCTIONS ---
+        
+        function bindAdminEvents() {
+             lucide.createIcons();
+        }
+
+        function switchAdminTab(tab) {
+            // Update UI State (quick hack for tab styling)
+            document.querySelectorAll('[id^="tab-btn-"]').forEach(el => {
+                el.className = "w-full text-left px-4 py-3 rounded-xl hover:bg-white text-gray-600 font-medium transition flex items-center gap-2";
+            });
+            const activeBtn = document.getElementById(`tab-btn-${tab}`);
+            if(activeBtn) activeBtn.className = "w-full text-left px-4 py-3 rounded-xl bg-neerada-600 text-white font-medium shadow-md flex items-center gap-2";
+
+            // Render Content
+            const content = document.getElementById('admin-content-area');
+            if(tab === 'books') content.innerHTML = renderAdminBooksTab();
+            if(tab === 'settings') content.innerHTML = renderAdminSettingsTab();
+            if(tab === 'backup') content.innerHTML = renderAdminBackupTab();
+            lucide.createIcons();
+        }
+
+        // -- BOOK EDITOR LOGIC --
+        
+        function openBookEditor(id = null) {
+            state.editingBookId = id;
+            const modal = document.getElementById('book-editor-modal');
+            const titleEl = document.getElementById('editor-title');
+            
+            // Default Values
+            let book = {
+                title: "", title_la: "", level: "primary", category: "fiction", author: "", desc: "",
+                pages: [{en: "", la: ""}] 
+            };
+
+            if (id) {
+                const found = state.books.find(b => b.id === id);
+                if(found) book = found;
+                titleEl.innerText = "Edit Story";
+            } else {
+                titleEl.innerText = "Add New Story";
+            }
+
+            // Populate Fields
+            document.getElementById('edit-title').value = book.title;
+            document.getElementById('edit-title-la').value = book.title_la || "";
+            document.getElementById('edit-level').value = book.level;
+            document.getElementById('edit-category').value = book.category;
+            document.getElementById('edit-author').value = book.author;
+            document.getElementById('edit-desc').value = book.desc;
+            
+            // Content (Page 1)
+            if(book.pages && book.pages.length > 0) {
+                document.getElementById('edit-content-en').value = book.pages[0].en || "";
+                document.getElementById('edit-content-la').value = book.pages[0].la || "";
+            } else {
+                document.getElementById('edit-content-en').value = "";
+                document.getElementById('edit-content-la').value = "";
+            }
+
+            modal.classList.remove('hidden');
+        }
+
+        function closeBookEditor() {
+            document.getElementById('book-editor-modal').classList.add('hidden');
+            state.editingBookId = null;
+        }
+
+        function saveBookFromEditor(e) {
+            e.preventDefault();
+            
+            const title = document.getElementById('edit-title').value;
+            const title_la = document.getElementById('edit-title-la').value;
+            const level = document.getElementById('edit-level').value;
+            const category = document.getElementById('edit-category').value;
+            const author = document.getElementById('edit-author').value;
+            const desc = document.getElementById('edit-desc').value;
+            const contentEn = document.getElementById('edit-content-en').value;
+            const contentLa = document.getElementById('edit-content-la').value;
+
+            const bookData = {
+                title, title_la, level, category, author, desc, desc_la: desc, // Simple mapping for desc_la
+                coverColor: "bg-gradient-to-br from-blue-100 to-blue-200", // Default style
+                pages: [{en: contentEn, la: contentLa}]
+            };
+
+            if (state.editingBookId) {
+                // Update
+                const idx = state.books.findIndex(b => b.id === state.editingBookId);
+                if(idx !== -1) {
+                    state.books[idx] = { ...state.books[idx], ...bookData };
+                }
+            } else {
+                // Create New
+                const newId = Date.now();
+                state.books.push({ id: newId, ...bookData });
+            }
+
+            saveData();
+            closeBookEditor();
+            switchAdminTab('books'); // Refresh list
+        }
+
+        function deleteBook(id) {
+            if(confirm('Delete this book?')) {
+                state.books = state.books.filter(b => b.id !== id);
+                saveData();
+                switchAdminTab('books');
+            }
+        }
+
+        function updateSetting(key, value) {
+            state.appSettings[key] = value;
+            saveData();
+        }
+
+        function handleFileUpload(input, settingKey) {
+            if (input.files && input.files[0]) {
+                const reader = new FileReader();
+                reader.onload = function(e) {
+                    updateSetting(settingKey, e.target.result);
+                    switchAdminTab('settings');
+                };
+                reader.readAsDataURL(input.files[0]);
+            }
+        }
+
+        function exportData() {
+            const dataStr = "data:text/json;charset=utf-8," + encodeURIComponent(JSON.stringify({books: state.books, settings: state.appSettings}));
+            const downloadAnchorNode = document.createElement('a');
+            downloadAnchorNode.setAttribute("href", dataStr);
+            downloadAnchorNode.setAttribute("download", "neerada_backup_" + new Date().toISOString().slice(0,10) + ".json");
+            document.body.appendChild(downloadAnchorNode);
+            downloadAnchorNode.click();
+            downloadAnchorNode.remove();
+        }
+
+        function importData() {
+            const fileInput = document.getElementById('import-file');
+            if(!fileInput.files.length) return alert("Please select a file first.");
+            
+            const reader = new FileReader();
+            reader.onload = function(e) {
+                try {
+                    const data = JSON.parse(e.target.result);
+                    if(data.books && data.settings) {
+                        state.books = data.books;
+                        state.appSettings = data.settings;
+                        saveData();
+                        alert("Import successful!");
+                        switchAdminTab('books');
+                    } else {
+                        alert("Invalid file format.");
+                    }
+                } catch(err) {
+                    alert("Error parsing JSON.");
+                }
+            };
+            reader.readAsText(fileInput.files[0]);
+        }
+
+        // --- LOGIC: USER APP FUNCTIONS ---
+        function toggleLang() {
+            state.lang = state.lang === 'en' ? 'la' : 'en';
+            render();
+        }
+
+        function filterAppLevel(level) {
+            const catalog = document.getElementById('catalog-area');
+            const filtered = state.books.filter(b => b.level === level);
+            catalog.innerHTML = `<h2 class="text-2xl font-bold text-gray-800 mb-6 border-b pb-2 capitalize">${level} Books</h2>
+                                 <div class="grid grid-cols-2 md:grid-cols-4 gap-6">
+                                    ${filtered.map(b => renderBookCard(b)).join('')}
+                                 </div>
+                                 <button onclick="render()" class="mt-8 text-neerada-600 underline">Show All</button>`;
+        }
+        
+        // Reader Logic
+        let readerBook = null;
+        let readerPageIdx = 0;
+
+        function renderReaderModal() {
+            return `
+                <div id="reader-modal" class="fixed inset-0 bg-white z-50 hidden flex-col">
+                    <div class="p-4 border-b flex justify-between items-center bg-white">
+                        <button onclick="document.getElementById('reader-modal').classList.add('hidden')" class="text-red-500 font-bold">Close</button>
+                        <span class="font-bold" id="reader-header-title">Title</span>
+                        <span class="text-sm text-gray-500" id="reader-counter">1/1</span>
+                    </div>
+                    <div class="flex-grow flex items-center justify-center p-6 bg-gray-50 overflow-y-auto">
+                        <div class="max-w-2xl text-center">
+                            <p class="text-2xl md:text-3xl leading-relaxed text-gray-800" id="reader-text">...</p>
+                        </div>
+                    </div>
+                    <div class="p-4 border-t flex justify-between max-w-2xl mx-auto w-full">
+                        <button onclick="changeReaderPage(-1)" class="px-6 py-3 bg-gray-200 rounded-lg">Prev</button>
+                        <button onclick="changeReaderPage(1)" class="px-6 py-3 bg-neerada-600 text-white rounded-lg">Next</button>
+                    </div>
+                </div>
+            `;
+        }
+
+        function openReader(id) {
+            readerBook = state.books.find(b => b.id === id);
+            if(!readerBook.pages || !readerBook.pages.length) return alert("No content.");
+            readerPageIdx = 0;
+            updateReaderUI();
+            document.getElementById('reader-modal').classList.remove('hidden');
+        }
+
+        function updateReaderUI() {
+            const page = readerBook.pages[readerPageIdx];
+            const text = state.lang === 'en' ? page.en : page.la;
+            document.getElementById('reader-header-title').innerText = state.lang === 'en' ? readerBook.title : readerBook.title_la;
+            document.getElementById('reader-text').innerText = text;
+            document.getElementById('reader-counter').innerText = `${readerPageIdx + 1} / ${readerBook.pages.length}`;
+        }
+
+        function changeReaderPage(dir) {
+            const newIdx = readerPageIdx + dir;
+            if(newIdx >= 0 && newIdx < readerBook.pages.length) {
+                readerPageIdx = newIdx;
+                updateReaderUI();
+            } else if (newIdx >= readerBook.pages.length) {
+                document.getElementById('reader-modal').classList.add('hidden');
+            }
+        }
+
+        // --- ANIMATION HELPERS ---
+        const translations = {
+            en: { 
+                welcome: "Welcome", 
+                subtitle: "Select a department to explore", 
+                levelEarly: "Kindergarten", 
+                levelPrimary: "Primary", 
+                levelSecondary: "Secondary", 
+                earlyDesc: "Curated stories, songs, and picture books designed to spark imagination in our youngest learners.", 
+                primaryDesc: "A rich collection of chapter books and educational resources to build reading confidence.", 
+                secondaryDesc: "Academic journals, literature classics, and research materials for advanced study." 
+            },
+            la: { 
+                welcome: "ຍິນດີຕ້ອນຮັບ", 
+                subtitle: "ເລືອກພະແນກເພື່ອເລີ່ມຕົ້ນ", 
+                levelEarly: "ອະນຸບານ", 
+                levelPrimary: "ປະຖົມ", 
+                levelSecondary: "ມັດທະຍົມ", 
+                earlyDesc: "ນິທານ, ເພງ ແລະ ປຶ້ມຮູບພາບທີ່ຖືກຄັດສັນມາເພື່ອເສີມສ້າງຈິນຕະນາການ.", 
+                primaryDesc: "ປຶ້ມອ່ານ ແລະ ແຫຼ່ງການຮຽນຮູ້ທີ່ຫຼາກຫຼາຍເພື່ອສ້າງຄວາມໝັ້ນໃຈໃນການອ່ານ.", 
+                secondaryDesc: "ວາລະສານວິຊາການ, ວັນນະຄະດີ ແລະ ເອກະສານການຄົ້ນຄວ້າສຳລັບການຮຽນຂັ້ນສູງ." 
+            }
+        };
+
+        // 3D Tilt Logic
+        function handleTilt(e) {
+            const card = document.getElementById('hero-card');
+            if(!card) return;
+            
+            const rect = card.getBoundingClientRect();
+            // Only tilt if mouse is near/over card for better performance
+            if (e.clientX < rect.left - 100 || e.clientX > rect.right + 100 || e.clientY < rect.top - 100 || e.clientY > rect.bottom + 100) {
+                 card.style.transform = `perspective(1000px) rotateX(0deg) rotateY(0deg)`;
+                 return;
+            }
+
+            const centerX = rect.width / 2;
+            const centerY = rect.height / 2;
+            const x = e.clientX - rect.left;
+            const y = e.clientY - rect.top;
+            
+            const rotateX = ((y - centerY) / centerY) * -10; // Max 10deg
+            const rotateY = ((x - centerX) / centerX) * 10;
+
+            card.style.transform = `perspective(1000px) rotateX(${rotateX}deg) rotateY(${rotateY}deg)`;
+        }
+
+        // Scroll Reveal Logic
+        function setupObserver() {
+            const observer = new IntersectionObserver((entries) => {
+                entries.forEach(entry => {
+                    if(entry.isIntersecting) {
+                        entry.target.classList.add('active');
+                    }
+                });
+            }, { threshold: 0.1 });
+
+            document.querySelectorAll('.reveal').forEach(el => observer.observe(el));
+        }
+
+    </script>
+</body>
+</html>
