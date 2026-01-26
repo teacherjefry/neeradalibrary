@@ -337,7 +337,10 @@
                     const book = state.books.find(b => b.id === bookId);
                     if (book) {
                         const savedPage = localStorage.getItem('neerada_reader_page');
-                        openReader(bookId, savedPage ? parseInt(savedPage) : 0);
+                        // Ensure we don't open reader if it's already open to avoid flicker/reset
+                        if(document.getElementById('reader-modal').classList.contains('hidden')) {
+                             openReader(bookId, savedPage ? parseInt(savedPage) : 0);
+                        }
                     }
                 }
 
@@ -458,7 +461,9 @@
             
             root.innerHTML = content;
             if(state.view === 'admin-dashboard') bindAdminEvents();
-            lucide.createIcons();
+            
+            // FIX: Scope Lucide to app-root only, so it doesn't break the reader modal in body
+            lucide.createIcons({ root: root });
         }
 
         function renderLandingPage() {
@@ -678,7 +683,6 @@
 
                     ${renderFooter()}
                 </div>
-                ${renderReaderModal()}
             `;
         }
 
@@ -734,7 +738,6 @@
                     
                     ${renderFooter()}
                 </div>
-                ${renderReaderModal()}
             `;
         }
 
@@ -1553,7 +1556,7 @@
             updateReaderUI();
             
             document.getElementById('reader-modal').classList.remove('hidden');
-            lucide.createIcons();
+            lucide.createIcons({ root: document.getElementById('reader-modal') });
         }
 
         function closeReader() {
@@ -1573,7 +1576,7 @@
                 oldModal.replaceWith(wrapper.firstElementChild);
                 document.getElementById('reader-modal').classList.remove('hidden');
                 updateReaderUI(); // Restore content
-                lucide.createIcons();
+                lucide.createIcons({ root: document.getElementById('reader-modal') });
             }
         }
 
