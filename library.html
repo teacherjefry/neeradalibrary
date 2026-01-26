@@ -72,19 +72,30 @@
         /* Base Styles */
         body { @apply antialiased text-gray-800 bg-neerada-50; }
         
-        /* Glassmorphism Classes */
+        /* Glassmorphism Classes - Updated for transparency */
         .glass-panel {
-            background: rgba(255, 255, 255, 0.75);
-            backdrop-filter: blur(20px);
-            -webkit-backdrop-filter: blur(20px);
-            border: 1px solid rgba(255, 255, 255, 0.6);
+            background: rgba(255, 255, 255, 0.4); /* More transparent */
+            backdrop-filter: blur(12px);
+            -webkit-backdrop-filter: blur(12px);
+            border: 1px solid rgba(255, 255, 255, 0.5);
             box-shadow: 0 8px 32px rgba(0, 0, 0, 0.1);
         }
         
         .glass-nav {
-            background: rgba(255, 255, 255, 0.85);
+            background: rgba(255, 255, 255, 0.7);
             backdrop-filter: blur(12px);
             border-bottom: 1px solid rgba(255, 255, 255, 0.5);
+        }
+
+        /* Aesthetic Buttons */
+        .btn-aesthetic {
+            background: linear-gradient(135deg, #3b82f6 0%, #10b981 100%);
+            box-shadow: 0 0 15px rgba(59, 130, 246, 0.5);
+            transition: all 0.3s ease;
+        }
+        .btn-aesthetic:hover {
+            box-shadow: 0 0 25px rgba(16, 185, 129, 0.7);
+            transform: translateY(-2px);
         }
 
         /* 3D Tilt Effect Container */
@@ -131,7 +142,7 @@
     <script>
         // --- STATE MANAGEMENT ---
         const state = {
-            view: 'landing', // landing, app, admin-login, admin-dashboard
+            view: 'landing', // landing, app, admin-login, admin-dashboard, collection
             lang: 'en',
             appSettings: {
                 schoolName: "Neerada School",
@@ -139,14 +150,182 @@
                 faviconUrl: null
             },
             books: [], // Loaded from DB or LocalStorage
-            editingBookId: null // Track which book is being edited
+            editingBookId: null, // Track which book is being edited
+            currentCollectionLevel: null // Track which department is open
         };
 
-        // Initial Data (if localStorage is empty)
+        // Initial Data (15 Books - 5 per department, 5 pages each)
         const initialBooks = [
-            { id: 1, title: "The Little Elephant", title_la: "ຊ້ານ້ອຍຜູ້ກ້າຫານ", author: "Somsanouk", level: "early", category: "fiction", coverColor: "bg-gradient-to-br from-pink-300 to-rose-300", desc: "A brave little elephant finds his way home.", desc_la: "ຊ້າງນ້ອຍຜູ້ກ້າຫານຊອກຫາທາງກັບບ້ານ.", pages: [{en:"Once upon a time...", la:"ກາລຄັ້ງໜຶ່ງ..."}] },
-            { id: 4, title: "The Rain Cycle", title_la: "ວົງຈອນຂອງຝົນ", author: "Dr. Science", level: "primary", category: "science", coverColor: "bg-gradient-to-br from-purple-300 to-indigo-300", desc: "Why does it rain? Learn about the water cycle.", desc_la: "ເປັນຫຍັງຝົນຈຶ່ງຕົກ? ຮຽນຮູ້ກ່ຽວກັບວົງຈອນນ້ຳ.", pages: [{en:"Rain comes from clouds.", la:"ຝົນມາຈາກເມກ."}] },
-            { id: 7, title: "History of Lan Xang", title_la: "ປະຫວັດສາດລ້ານຊ້າງ", author: "History Dept", level: "secondary", category: "history", coverColor: "bg-gradient-to-br from-blue-300 to-cyan-300", desc: "Origins of the Kingdom.", desc_la: "ຕົ້ນກຳເນີດຂອງອານາຈັກ.", pages: [{en:"Founded in 1353.", la:"ສ້າງຕັ້ງຂຶ້ນໃນປີ 1353."}] },
+            // --- KINDERGARTEN (EARLY) ---
+            { 
+                id: 1, title: "The Little Elephant", title_la: "ຊ້ານ້ອຍຜູ້ກ້າຫານ", author: "Somsanouk", level: "early", category: "fiction", coverColor: "bg-gradient-to-br from-pink-300 to-rose-300", 
+                desc: "A brave little elephant finds his way home.", desc_la: "ຊ້າງນ້ອຍຜູ້ກ້າຫານຊອກຫາທາງກັບບ້ານ.", 
+                pages: [
+                    {en:"Once upon a time, there was a little elephant named Noi.", la:"ກາລຄັ້ງໜຶ່ງ, ມີຊ້າງນ້ອຍໂຕໜຶ່ງຊື່ວ່າ ນ້ອຍ."},
+                    {en:"Noi played in the forest.", la:"ນ້ອຍຫຼິ້ນຢູ່ໃນປ່າ."},
+                    {en:"He saw a butterfly.", la:"ລາວເຫັນແມງກະເບື້ອ."},
+                    {en:"The butterfly was blue.", la:"ແມງກະເບື້ອນັ້ນມີສີຟ້າ."},
+                    {en:"Noi was happy.", la:"ນ້ອຍມີຄວາມສຸກ."}
+                ] 
+            },
+            { 
+                id: 2, title: "Colors of Nature", title_la: "ສີສັນຂອງທຳມະຊາດ", author: "Ms. Boua", level: "early", category: "science", coverColor: "bg-gradient-to-br from-green-300 to-emerald-300", 
+                desc: "Learning colors with flowers and trees.", desc_la: "ຮຽນຮູ້ສີຕ່າງໆກັບດອກໄມ້ແລະຕົ້ນໄມ້.", 
+                pages: [
+                    {en:"The sky is blue.", la:"ທ້ອງຟ້າແມ່ນສີຟ້າ."},
+                    {en:"The grass is green.", la:"ຫຍ້າແມ່ນສີຂຽວ."},
+                    {en:"The sun is yellow.", la:"ຕາເວັນແມ່ນສີເຫຼືອງ."},
+                    {en:"The apple is red.", la:"ຫມາກໂປມແມ່ນສີແດງ."},
+                    {en:"Nature is beautiful.", la:"ທຳມະຊາດແມ່ນສວຍງາມ."}
+                ] 
+            },
+            { 
+                id: 3, title: "My First Numbers", title_la: "ຕົວເລກຂອງຂ້ອຍ", author: "Teacher Phet", level: "early", category: "science", coverColor: "bg-gradient-to-br from-yellow-300 to-orange-300", 
+                desc: "Count from 1 to 5.", desc_la: "ນັບເລກ 1 ເຖິງ 5.", 
+                pages: [
+                    {en:"One apple.", la:"ຫມາກໂປມຫນຶ່ງຫນ່ວຍ."},
+                    {en:"Two bananas.", la:"ຫມາກກ້ວຍສອງຫນ່ວຍ."},
+                    {en:"Three cats.", la:"ແມວສາມໂຕ."},
+                    {en:"Four dogs.", la:"ຫມາສີ່ໂຕ."},
+                    {en:"Five birds.", la:"ນົກຫ້າໂຕ."}
+                ] 
+            },
+            { 
+                id: 11, title: "The Sleepy Moon", title_la: "ພະຈັນຂີ້ເຫງົານອນ", author: "Moonbeam", level: "early", category: "fiction", coverColor: "bg-gradient-to-br from-indigo-300 to-purple-300", 
+                desc: "Time for bed.", desc_la: "ເຖິງເວລານອນແລ້ວ.", 
+                pages: [
+                    {en:"The sun goes down.", la:"ຕາເວັນຕົກດິນ."},
+                    {en:"The stars come out.", la:"ດວງດາວອອກມາ."},
+                    {en:"The moon is sleepy.", la:"ພະຈັນງ່ວງນອນ."},
+                    {en:"Goodnight world.", la:"ຝັນດີໂລກ."},
+                    {en:"Sweet dreams.", la:"ນອນຫຼັບຝັນດີ."}
+                ] 
+            },
+            { 
+                id: 12, title: "Happy Animals", title_la: "ສັດທີ່ມີຄວາມສຸກ", author: "Zoo Keeper", level: "early", category: "fiction", coverColor: "bg-gradient-to-br from-red-300 to-orange-300", 
+                desc: "Meet the animals.", desc_la: "ພົບກັບສັດຕ່າງໆ.", 
+                pages: [
+                    {en:"The lion roars.", la:"ສິງໂຕຮ້ອງ."},
+                    {en:"The duck quacks.", la:"ເປັດຮ້ອງ."},
+                    {en:"The cow moos.", la:"ງົວຮ້ອງ."},
+                    {en:"The cat meows.", la:"ແມວຮ້ອງ."},
+                    {en:"We love animals.", la:"ພວກຮັກສັດ."}
+                ] 
+            },
+
+            // --- PRIMARY (G3-G5) ---
+            { 
+                id: 4, title: "The Rain Cycle", title_la: "ວົງຈອນຂອງຝົນ", author: "Dr. Science", level: "primary", category: "science", coverColor: "bg-gradient-to-br from-purple-300 to-indigo-300", 
+                desc: "Why does it rain? Learn about the water cycle.", desc_la: "ເປັນຫຍັງຝົນຈຶ່ງຕົກ? ຮຽນຮູ້ກ່ຽວກັບວົງຈອນນ້ຳ.", 
+                pages: [
+                    {en:"The sun heats the ocean water.", la:"ແສງຕາເວັນເຮັດໃຫ້ນ້ຳມະຫາສະໝຸດຮ້ອນ."},
+                    {en:"Water turns into vapor and rises.", la:"ນ້ຳກາຍເປັນອາຍແລະລອຍຂຶ້ນ."},
+                    {en:"Clouds form in the sky.", la:"ເມກກໍ່ຕົວຂຶ້ນເທິງທ້ອງຟ້າ."},
+                    {en:"Rain falls down to earth.", la:"ຝົນຕົກລົງມາສູ່ພື້ນດິນ."},
+                    {en:"The water goes back to the river.", la:"ນ້ຳໄຫຼກັບຄືນສູ່ແມ່ນ້ຳ."}
+                ] 
+            },
+            { 
+                id: 5, title: "The Lost Temple", title_la: "ວັດທີ່ສາບສູນ", author: "Adv. Jones", level: "primary", category: "fiction", coverColor: "bg-gradient-to-br from-amber-600 to-yellow-500", 
+                desc: "An adventure in the jungle.", desc_la: "ການຜະຈົນໄພໃນປ່າ.", 
+                pages: [
+                    {en:"Max found an old map.", la:"ແມັກພົບແຜນທີ່ເກົ່າ."},
+                    {en:"He walked deep into the jungle.", la:"ລາວຍ່າງເຂົ້າໄປໃນປ່າເລິກ."},
+                    {en:"He saw ancient stones.", la:"ລາວເຫັນຫີນບູຮານ."},
+                    {en:"A monkey showed him the way.", la:"ລີງໂຕໜຶ່ງຊີ້ທາງໃຫ້ລາວ."},
+                    {en:"He found the golden temple!", la:"ລາວພົບວັດທອງຄຳ!"}
+                ] 
+            },
+            { 
+                id: 6, title: "Solar System Guide", title_la: "ຄູ່ມືລະບົບສຸລິຍະ", author: "Space Lab", level: "primary", category: "science", coverColor: "bg-gradient-to-br from-slate-800 to-slate-600", 
+                desc: "Explore the planets.", desc_la: "ສຳຫຼວດດາວເຄາະ.", 
+                pages: [
+                    {en:"Mercury is closest to the sun.", la:"ດາວພຸດຢູ່ໃກ້ຕາເວັນທີ່ສຸດ."},
+                    {en:"Venus is very hot.", la:"ດາວສຸກຮ້ອນຫຼາຍ."},
+                    {en:"Earth is our home.", la:"ໂລກແມ່ນບ້ານຂອງເຮົາ."},
+                    {en:"Mars is the red planet.", la:"ດາວອັງຄານແມ່ນດາວສີແດງ."},
+                    {en:"Jupiter is the biggest giant.", la:"ດາວພະຫັດແມ່ນດາວຍັກໃຫຍ່ທີ່ສຸດ."}
+                ] 
+            },
+            { 
+                id: 13, title: "Lao Folktales", title_la: "ນິທານພື້ນເມືອງລາວ", author: "Grandma Pheng", level: "primary", category: "history", coverColor: "bg-gradient-to-br from-teal-400 to-emerald-500", 
+                desc: "Stories from the past.", desc_la: "ເລື່ອງລາວຈາກອະດີດ.", 
+                pages: [
+                    {en:"Long ago, animals could talk.", la:"ດົນນານມາແລ້ວ, ສັດສາມາດເວົ້າໄດ້."},
+                    {en:"The turtle was wise.", la:"ເຕົ່າເປັນຜູ້ສະຫຼາດ."},
+                    {en:"The rabbit was fast but lazy.", la:"ກະຕ່າຍໄວແຕ່ຂີ້ຄ້ານ."},
+                    {en:"They had a race.", la:"ພວກເຂົາແຂ່ງຂັນກັນ."},
+                    {en:"Slow and steady wins.", la:"ຊ້າແຕ່ໝັ້ນຄົງຍ່ອມຊະນະ."}
+                ] 
+            },
+            { 
+                id: 14, title: "Friendly Math", title_la: "ຄະນິດສາດເພື່ອນມິດ", author: "Mr. Calculator", level: "primary", category: "science", coverColor: "bg-gradient-to-br from-cyan-400 to-blue-500", 
+                desc: "Math is fun!", desc_la: "ຄະນິດສາດມ່ວນ!", 
+                pages: [
+                    {en:"Addition adds things together.", la:"ການບວກແມ່ນການເອົາສິ່ງຂອງມາລວມກັນ."},
+                    {en:"2 plus 2 is 4.", la:"2 ບວກ 2 ເປັນ 4."},
+                    {en:"Subtraction takes things away.", la:"ການລົບແມ່ນການເອົາສິ່ງຂອງອອກໄປ."},
+                    {en:"5 minus 1 is 4.", la:"5 ລົບ 1 ເປັນ 4."},
+                    {en:"Math helps us every day.", la:"ຄະນິດສາດຊ່ວຍເຮົາທຸກມື້."}
+                ] 
+            },
+
+            // --- SECONDARY (G6-G12) ---
+            { 
+                id: 7, title: "History of Lan Xang", title_la: "ປະຫວັດສາດລ້ານຊ້າງ", author: "History Dept", level: "secondary", category: "history", coverColor: "bg-gradient-to-br from-blue-600 to-cyan-700", 
+                desc: "Origins of the Kingdom.", desc_la: "ຕົ້ນກຳເນີດຂອງອານາຈັກ.", 
+                pages: [
+                    {en:"Founded in 1353 by Fa Ngum.", la:"ສ້າງຕັ້ງຂຶ້ນໃນປີ 1353 ໂດຍເຈົ້າຟ້າງຸ່ມ."},
+                    {en:"It united many Lao lands.", la:"ມັນໄດ້ລວບລວມແຜ່ນດິນລາວຫຼາຍແຫ່ງ."},
+                    {en:"Luang Prabang was the first capital.", la:"ຫຼວງພະບາງແມ່ນນະຄອນຫຼວງທຳອິດ."},
+                    {en:"Buddhism became the main religion.", la:"ພຸດທະສາສະໜາກາຍເປັນສາສະໜາຫຼັກ."},
+                    {en:"The kingdom lasted for centuries.", la:"ອານາຈັກໄດ້ຢືນຍົງມາຫຼາຍສະຕະວັດ."}
+                ] 
+            },
+            { 
+                id: 8, title: "Biology: Cells", title_la: "ຊີວະວິທະຍາ: ຈຸລັງ", author: "Dr. Som", level: "secondary", category: "science", coverColor: "bg-gradient-to-br from-green-600 to-teal-700", 
+                desc: "The building blocks of life.", desc_la: "ພື້ນຖານຂອງສິ່ງທີ່ມີຊີວິດ.", 
+                pages: [
+                    {en:"All living things are made of cells.", la:"ສິ່ງທີ່ມີຊີວິດທັງໝົດແມ່ນປະກອບດ້ວຍຈຸລັງ."},
+                    {en:"The nucleus is the brain of the cell.", la:"ນິວເຄລຍແມ່ນສະໝອງຂອງຈຸລັງ."},
+                    {en:"Mitochondria create energy.", la:"ໄມໂຕຄອນເດຍສ້າງພະລັງງານ."},
+                    {en:"Plant cells have cell walls.", la:"ຈຸລັງພືດມີຝາຈຸລັງ."},
+                    {en:"Animal cells do not.", la:"ຈຸລັງສັດບໍ່ມີ."}
+                ] 
+            },
+            { 
+                id: 9, title: "Modern Poetry", title_la: "ບົດກອນສະໄໝໃໝ່", author: "Poet Society", level: "secondary", category: "fiction", coverColor: "bg-gradient-to-br from-rose-500 to-pink-600", 
+                desc: "Expressing feelings through words.", desc_la: "ສະແດງຄວາມຮູ້ສຶກຜ່ານຄຳເວົ້າ.", 
+                pages: [
+                    {en:"The city lights shine bright.", la:"ແສງໄຟໃນເມືອງສ່ອງແສງສະຫວ່າງ."},
+                    {en:"Cars move like rivers of light.", la:"ລົດເຄື່ອນທີ່ຄືກັບແມ່ນ້ຳແຫ່ງແສງ."},
+                    {en:"Silence is hard to find.", la:"ຄວາມງຽບສະຫງົບຫາໄດ້ຍາກ."},
+                    {en:"Yet peace is in the heart.", la:"ແຕ່ຄວາມສະຫງົບຢູ່ໃນໃຈ."},
+                    {en:"We write to feel alive.", la:"ເຮົາຂຽນເພື່ອໃຫ້ຮູ້ສຶກມີຊີວິດ."}
+                ] 
+            },
+            { 
+                id: 10, title: "Intro to Coding", title_la: "ແນະນຳການຂຽນໂປຣແກຣມ", author: "Tech Lead", level: "secondary", category: "science", coverColor: "bg-gradient-to-br from-gray-700 to-black", 
+                desc: "Learn HTML and JS.", desc_la: "ຮຽນຮູ້ HTML ແລະ JS.", 
+                pages: [
+                    {en:"Computers speak binary: 0 and 1.", la:"ຄອມພິວເຕີເວົ້າພາສາຖານສອງ: 0 ແລະ 1."},
+                    {en:"HTML builds the structure.", la:"HTML ສ້າງໂຄງສ້າງ."},
+                    {en:"CSS makes it look good.", la:"CSS ເຮັດໃຫ້ມັນເບິ່ງງາມ."},
+                    {en:"JavaScript makes it interactive.", la:"JavaScript ເຮັດໃຫ້ມັນໂຕ້ຕອບໄດ້."},
+                    {en:"Coding is the future.", la:"ການຂຽນໂປຣແກຣມແມ່ນອະນາຄົດ."}
+                ] 
+            },
+            { 
+                id: 15, title: "World Geography", title_la: "ພູມສາດໂລກ", author: "Atlas Team", level: "secondary", category: "history", coverColor: "bg-gradient-to-br from-blue-800 to-indigo-900", 
+                desc: "Maps and cultures.", desc_la: "ແຜນທີ່ແລະວັດທະນະທຳ.", 
+                pages: [
+                    {en:"There are seven continents.", la:"ມີເຈັດທະວີບ."},
+                    {en:"Asia is the largest.", la:"ອາຊີແມ່ນໃຫຍ່ທີ່ສຸດ."},
+                    {en:"The Pacific is the biggest ocean.", la:"ປາຊີຟິກແມ່ນມະຫາສະໝຸດທີ່ໃຫຍ່ທີ່ສຸດ."},
+                    {en:"Mountains effect weather.", la:"ພູເຂົາມີຜົນຕໍ່ສະພາບອາກາດ."},
+                    {en:"We share one planet.", la:"ເຮົາແບ່ງປັນໂລກດຽວກັນ."}
+                ] 
+            },
         ];
 
         // --- INIT ---
@@ -189,8 +368,9 @@
         }
 
         // --- ROUTING / NAVIGATION ---
-        function navigate(view) {
+        function navigate(view, collectionLevel = null) {
             state.view = view;
+            if (collectionLevel) state.currentCollectionLevel = collectionLevel;
             localStorage.setItem('neerada_current_view', view); // Save View
             window.scrollTo(0,0);
             render();
@@ -205,6 +385,7 @@
 
             if (state.view === 'landing') root.innerHTML = renderLandingPage();
             else if (state.view === 'app') root.innerHTML = renderUserApp();
+            else if (state.view === 'collection') root.innerHTML = renderCollectionPage();
             else if (state.view === 'admin-login') root.innerHTML = renderAdminLogin();
             else if (state.view === 'admin-dashboard') root.innerHTML = renderAdminDashboard();
             
@@ -229,7 +410,7 @@
                             <a href="#features" class="hover:text-neerada-600 transition">Features</a>
                             <a href="#quote" class="hover:text-neerada-600 transition">Inspiration</a>
                             <a href="#gallery" class="hover:text-neerada-600 transition">Gallery</a>
-                            <button onclick="navigate('app')" class="px-6 py-2.5 rounded-full bg-neerada-600 text-white font-semibold shadow-lg shadow-neerada-600/30 hover:bg-neerada-700 hover:scale-105 transition-all duration-300">
+                            <button onclick="navigate('app')" class="px-6 py-2.5 rounded-full btn-aesthetic text-white font-semibold hover:scale-105 transition-all duration-300">
                                 Enter Library
                             </button>
                         </div>
@@ -240,12 +421,12 @@
                 <section class="relative pt-32 pb-20 lg:pt-48 lg:pb-32 overflow-hidden min-h-[90vh] flex items-center">
                     <!-- Background Image -->
                     <div class="absolute inset-0 z-0">
-                        <img src="https://images.unsplash.com/photo-1541963463532-d68292c34b19?q=80&w=2000&auto=format&fit=crop" class="w-full h-full object-cover">
+                        <img src="https://images.unsplash.com/photo-1524995997946-a1c2e315a42f?q=80&w=2000&auto=format&fit=crop" class="w-full h-full object-cover">
                     </div>
 
                     <!-- Centered Hero Content -->
                     <div class="max-w-5xl mx-auto px-6 relative z-10 text-center w-full">
-                        <div class="glass-panel p-10 md:p-16 rounded-3xl animate-slide-up shadow-2xl mx-auto backdrop-blur-xl border-white/50">
+                        <div class="glass-panel bg-white/30 p-10 md:p-16 rounded-3xl animate-slide-up shadow-2xl mx-auto backdrop-blur-xl border-white/40">
                             <!-- Hero Title: Aesthetic Font Style & New Color -->
                             <h1 class="leading-tight mb-6">
                                 <span class="font-serif italic font-semibold text-6xl md:text-8xl text-neerada-950 block mb-2">Neerada</span>
@@ -254,15 +435,15 @@
                                 </span>
                             </h1>
 
-                            <p class="text-lg md:text-xl text-gray-700 max-w-2xl mx-auto leading-relaxed font-medium mb-8">
+                            <p class="text-lg md:text-xl text-gray-800 max-w-2xl mx-auto leading-relaxed font-medium mb-8 bg-white/40 rounded-lg p-2 backdrop-blur-sm">
                                 A comprehensive digital resource empowering students from Kindergarten through Secondary education.
                             </p>
                             
                             <div class="flex flex-col sm:flex-row gap-4 justify-center">
-                                <button onclick="navigate('app')" class="px-8 py-4 rounded-xl bg-neerada-900 text-white font-bold shadow-lg shadow-neerada-900/20 hover:bg-neerada-800 transition-all transform hover:-translate-y-1">
+                                <button onclick="navigate('app')" class="px-8 py-4 rounded-xl btn-aesthetic text-white font-bold transition-all transform hover:-translate-y-1">
                                     Start Reading
                                 </button>
-                                <button onclick="navigate('admin-login')" class="px-8 py-4 rounded-xl bg-white border border-gray-200 text-neerada-900 font-bold hover:bg-gray-50 transition-all">
+                                <button onclick="navigate('admin-login')" class="px-8 py-4 rounded-xl bg-white/80 border border-gray-200 text-neerada-900 font-bold hover:bg-white transition-all shadow-md">
                                     Admin Portal
                                 </button>
                             </div>
@@ -400,18 +581,18 @@
                             <p class="text-gray-600">${t.subtitle}</p>
                         </div>
 
-                        <!-- Department Cards with Images -->
+                        <!-- Department Cards with Images - Clicking now navigates to collection view -->
                         <div class="grid md:grid-cols-3 gap-6 mb-12">
                             ${renderLevelCard('early', 'smile', 'https://images.unsplash.com/photo-1503454537195-1dcabb73ffb9?q=80&w=800&auto=format&fit=crop', t.levelEarly, t.earlyDesc)}
                             ${renderLevelCard('primary', 'book', 'https://images.unsplash.com/photo-1497633762265-9d179a990aa6?q=80&w=800&auto=format&fit=crop', t.levelPrimary, t.primaryDesc)}
                             ${renderLevelCard('secondary', 'graduation-cap', 'https://images.unsplash.com/photo-1456513080510-7bf3a84b82f8?q=80&w=800&auto=format&fit=crop', t.levelSecondary, t.secondaryDesc)}
                         </div>
-
-                        <!-- Catalog Section (Display all initially or filtered) -->
+                        
+                        <!-- Recent/All Books Section (Optional on Main App Page) -->
                         <div id="catalog-area">
-                             <h2 class="text-2xl font-bold text-gray-800 mb-6 border-b pb-2">Featured Books</h2>
+                             <h2 class="text-2xl font-bold text-gray-800 mb-6 border-b pb-2">New Arrivals</h2>
                              <div class="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-5 gap-6">
-                                ${state.books.map(b => renderBookCard(b)).join('')}
+                                ${state.books.slice(0, 5).map(b => renderBookCard(b)).join('')}
                              </div>
                         </div>
                     </main>
@@ -425,9 +606,67 @@
             `;
         }
 
+        // --- NEW VIEW: COLLECTION PAGE (Department Window) ---
+        function renderCollectionPage() {
+            const level = state.currentCollectionLevel;
+            const t = translations[state.lang];
+            const levelTitle = level === 'early' ? t.levelEarly : level === 'primary' ? t.levelPrimary : t.levelSecondary;
+            
+            // Filter books for this collection
+            const collectionBooks = state.books.filter(b => b.level === level);
+
+            return `
+                <div class="font-app bg-gray-50 min-h-screen flex flex-col">
+                    <!-- Navbar -->
+                    <nav class="bg-neerada-900 text-white shadow-lg sticky top-0 z-40">
+                        <div class="max-w-7xl mx-auto px-4 h-16 flex justify-between items-center">
+                            <div class="flex items-center gap-4">
+                                <button onclick="navigate('app')" class="flex items-center gap-2 hover:text-neerada-300 transition">
+                                    <i data-lucide="arrow-left" class="w-6 h-6"></i>
+                                    <span class="hidden sm:inline">Back</span>
+                                </button>
+                                <div class="h-6 w-px bg-white/20"></div>
+                                <span class="font-bold text-lg">${levelTitle} Collection</span>
+                            </div>
+                            <button onclick="toggleLang()" class="flex items-center gap-2 bg-white/10 hover:bg-white/20 px-3 py-1.5 rounded-full transition text-sm border border-white/20">
+                                <i data-lucide="globe" class="w-4 h-4"></i>
+                                <span>${state.lang.toUpperCase()}</span>
+                            </button>
+                        </div>
+                    </nav>
+
+                    <main class="flex-grow container mx-auto px-4 py-8">
+                        <!-- Collection Header -->
+                        <div class="bg-white rounded-2xl shadow-sm border border-gray-100 p-8 mb-8 flex flex-col md:flex-row items-center gap-6">
+                            <div class="w-20 h-20 rounded-full bg-gradient-to-br from-blue-100 to-green-100 flex items-center justify-center text-neerada-600 shadow-inner">
+                                <i data-lucide="${level === 'early' ? 'smile' : level === 'primary' ? 'book' : 'graduation-cap'}" class="w-10 h-10"></i>
+                            </div>
+                            <div class="text-center md:text-left">
+                                <h1 class="text-3xl font-bold text-gray-900 mb-2">${levelTitle} Library</h1>
+                                <p class="text-gray-500 max-w-xl">Explore our curated selection of books designed for ${levelTitle} students. Read online instantly.</p>
+                            </div>
+                        </div>
+
+                        <!-- Books Grid -->
+                        <div class="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-5 gap-6">
+                            ${collectionBooks.length > 0 
+                                ? collectionBooks.map(b => renderBookCard(b)).join('') 
+                                : `<div class="col-span-full text-center py-20 text-gray-400">No books found in this collection.</div>`
+                            }
+                        </div>
+                    </main>
+                    
+                    <footer class="bg-gray-800 text-gray-400 py-6 text-center text-sm font-app">
+                        © ${new Date().getFullYear()} ${state.appSettings.schoolName}.
+                    </footer>
+                </div>
+                ${renderReaderModal()}
+            `;
+        }
+
         function renderLevelCard(level, icon, imgUrl, title, desc) {
             return `
-                <div onclick="filterAppLevel('${level}')" class="relative overflow-hidden rounded-2xl shadow-md hover:shadow-xl transition-all duration-300 cursor-pointer group h-64 border border-gray-200">
+                <div onclick="navigate('collection', '${level}')" class="relative overflow-hidden rounded-2xl shadow-md hover:shadow-xl transition-all duration-300 cursor-pointer group h-64 border border-gray-200">
                     <!-- Background Image -->
                     <div class="absolute inset-0 bg-cover bg-center transition-transform duration-700 group-hover:scale-110" style="background-image: url('${imgUrl}');"></div>
                     
@@ -449,15 +688,15 @@
         function renderBookCard(book) {
             const title = state.lang === 'en' ? book.title : book.title_la;
             return `
-                <div onclick="openReader(${book.id})" class="bg-white rounded-xl shadow-sm hover:shadow-lg transition cursor-pointer flex flex-col h-full overflow-hidden group border border-gray-100">
+                <div onclick="openReader(${book.id})" class="bg-white rounded-xl shadow-sm hover:shadow-lg transition cursor-pointer flex flex-col h-full overflow-hidden group border border-gray-100 transform hover:-translate-y-1 duration-300">
                     <div class="h-48 ${book.coverColor} flex items-center justify-center p-4 relative">
                         <span class="text-white font-bold text-4xl drop-shadow-md select-none">${title.charAt(0)}</span>
                         <div class="absolute inset-0 bg-black/0 group-hover:bg-black/10 transition"></div>
                     </div>
-                    <div class="p-3 flex flex-col flex-grow">
+                    <div class="p-4 flex flex-col flex-grow">
                         <h4 class="font-bold text-gray-900 leading-tight line-clamp-2 mb-1 text-sm">${title}</h4>
                         <p class="text-xs text-gray-500 mb-2">${book.author}</p>
-                        <span class="mt-auto inline-block px-2 py-1 rounded bg-gray-100 text-gray-500 text-[10px] uppercase font-bold self-start">${book.category}</span>
+                        <span class="mt-auto inline-block px-2 py-1 rounded bg-gray-100 text-gray-500 text-[10px] uppercase font-bold self-start tracking-wide">${book.category}</span>
                     </div>
                 </div>
             `;
@@ -481,7 +720,7 @@
                                 <input type="password" class="w-full px-4 py-2 rounded-lg border border-gray-300 focus:ring-2 focus:ring-neerada-500 outline-none" placeholder="Enter admin password">
                                 <p class="text-xs text-gray-400 mt-1">(Mock Login: Any password works)</p>
                             </div>
-                            <button type="submit" class="w-full bg-neerada-600 text-white py-2.5 rounded-lg font-bold hover:bg-neerada-700 transition">
+                            <button type="submit" class="w-full btn-aesthetic text-white py-2.5 rounded-lg font-bold hover:scale-[1.02] transition">
                                 Login to Dashboard
                             </button>
                         </form>
