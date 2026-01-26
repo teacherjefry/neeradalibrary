@@ -329,6 +329,18 @@
                     setupObserver();
                     applySettings();
                 }
+                
+                // RESTORE READING SESSION IF ACTIVE
+                const savedReaderBookId = localStorage.getItem('neerada_reader_book');
+                if (savedReaderBookId) {
+                    const bookId = parseInt(savedReaderBookId);
+                    const book = state.books.find(b => b.id === bookId);
+                    if (book) {
+                        const savedPage = localStorage.getItem('neerada_reader_page');
+                        openReader(bookId, savedPage ? parseInt(savedPage) : 0);
+                    }
+                }
+
                 render();
             }, (error) => console.error("Books sync error:", error));
 
@@ -1463,10 +1475,10 @@
         function renderReaderModal() {
             const currentTheme = readerThemes[state.readerTheme];
             return `
-                <div id="reader-modal" class="fixed inset-0 z-50 hidden flex flex-col ${currentTheme.bg}">
+                <div id="reader-modal" class="fixed inset-0 z-[100] hidden flex flex-col ${currentTheme.bg}">
                     <!-- Header -->
                     <div class="p-4 border-b border-gray-200/20 flex justify-between items-center shadow-sm relative z-20">
-                        <button onclick="document.getElementById('reader-modal').classList.add('hidden')" class="text-red-500 font-bold flex items-center gap-2">
+                        <button onclick="window.closeReader()" class="text-red-500 font-bold flex items-center gap-2">
                             <i data-lucide="x-circle" class="w-6 h-6"></i> <span class="hidden sm:inline">Close</span>
                         </button>
                         
@@ -1520,16 +1532,16 @@
             `;
         }
 
-        function openReader(id) {
+        function openReader(id, pageIdx = 0) {
             readerBook = state.books.find(b => b.id === id);
             if(!readerBook.pages || !readerBook.pages.length) return; // Silent fail
             
-            // RESET TO FIRST PAGE ALWAYS
-            readerPageIdx = 0;
+            readerPageIdx = pageIdx;
             
-            // Prepare UI
-            updateReaderUI();
-            
+            // Save state for refresh persistence
+            localStorage.setItem('neerada_reader_book', id);
+            localStorage.setItem('neerada_reader_page', pageIdx);
+
             // Render specific modal content
             const wrapper = document.createElement('div');
             wrapper.innerHTML = renderReaderModal();
@@ -1537,8 +1549,17 @@
             if(oldModal) oldModal.remove();
             document.body.appendChild(wrapper.firstElementChild);
             
+            // Fill content AFTER appending to DOM to avoid blank page
+            updateReaderUI();
+            
             document.getElementById('reader-modal').classList.remove('hidden');
             lucide.createIcons();
+        }
+
+        function closeReader() {
+            document.getElementById('reader-modal').classList.add('hidden');
+            localStorage.removeItem('neerada_reader_book');
+            localStorage.removeItem('neerada_reader_page');
         }
 
         function setReaderTheme(theme) {
@@ -1546,7 +1567,6 @@
             // Re-render modal in place to apply classes
             const oldModal = document.getElementById('reader-modal');
             if(oldModal) {
-                oldModal.classList.remove('hidden'); // Keep visible state
                 // Only re-render content if needed, for now simple re-open logic preserves state
                 const wrapper = document.createElement('div');
                 wrapper.innerHTML = renderReaderModal();
@@ -1576,21 +1596,26 @@
             const page = readerBook.pages[readerPageIdx];
             const text = state.lang === 'en' ? page.en : page.la;
             
-            document.getElementById('reader-header-title').innerText = state.lang === 'en' ? readerBook.title : readerBook.title_la;
-            document.getElementById('reader-text').innerText = text;
-            document.getElementById('reader-counter').innerText = `${readerPageIdx + 1} / ${readerBook.pages.length}`;
+            const titleEl = document.getElementById('reader-header-title');
+            if(titleEl) titleEl.innerText = state.lang === 'en' ? readerBook.title : readerBook.title_la;
+            
+            const textEl = document.getElementById('reader-text');
+            if(textEl) textEl.innerText = text || "";
+            
+            const counterEl = document.getElementById('reader-counter');
+            if(counterEl) counterEl.innerText = `${readerPageIdx + 1} / ${readerBook.pages.length}`;
             
             const imgContainer = document.getElementById('reader-image-container');
             const txtContainer = document.getElementById('reader-text-container');
             const imgEl = document.getElementById('reader-image');
             
-            if (page.image) {
+            if (page.image && imgEl && imgContainer && txtContainer) {
                 imgEl.src = page.image;
                 imgContainer.classList.remove('hidden');
                 imgContainer.classList.add('md:flex-1');
                 txtContainer.classList.remove('md:w-full');
                 txtContainer.classList.add('flex-1');
-            } else {
+            } else if (imgContainer && txtContainer) {
                 imgContainer.classList.add('hidden');
                 txtContainer.classList.remove('flex-1');
                 txtContainer.classList.add('md:w-full');
@@ -1601,9 +1626,10 @@
             const newIdx = readerPageIdx + dir;
             if(newIdx >= 0 && newIdx < readerBook.pages.length) {
                 readerPageIdx = newIdx;
+                localStorage.setItem('neerada_reader_page', newIdx);
                 updateReaderUI();
             } else if (newIdx >= readerBook.pages.length) {
-                document.getElementById('reader-modal').classList.add('hidden');
+                closeReader();
             }
         }
 
@@ -1636,6 +1662,7 @@
         window.navigateToAdmin = navigateToAdmin;
         window.toggleLang = toggleLang;
         window.openReader = openReader;
+        window.closeReader = closeReader;
         window.handleAdminLogin = handleAdminLogin;
         window.switchAdminTab = switchAdminTab;
         window.openBookEditor = openBookEditor;
