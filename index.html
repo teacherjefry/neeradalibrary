@@ -119,6 +119,17 @@
         }
         .tilt-content { transform: translateZ(40px); }
 
+        /* Scroll Reveal - Removed opacity 0 for instant load */
+        .reveal {
+            /* opacity: 0; */
+            /* transform: translateY(30px); */
+            /* transition: all 0.8s cubic-bezier(0.5, 0, 0, 1); */
+        }
+        .reveal.active {
+            /* opacity: 1; */
+            /* transform: translateY(0); */
+        }
+
         /* Custom Scrollbar */
         ::-webkit-scrollbar { width: 8px; }
         ::-webkit-scrollbar-track { background: #f1f1f1; }
@@ -309,6 +320,7 @@
                 // RESTORE READING SESSION
                 const savedReaderBookId = localStorage.getItem('neerada_reader_book');
                 if (savedReaderBookId) {
+                    // FIX: Ensure ID comparison handles both strings and numbers
                     const book = state.books.find(b => String(b.id) === savedReaderBookId);
                     if (book) {
                         const savedPage = localStorage.getItem('neerada_reader_page');
@@ -319,7 +331,13 @@
                 }
 
                 render();
-            }, (error) => console.error("Books sync error:", error));
+            }, (error) => {
+                console.error("Books sync error:", error);
+                // Visual feedback for connection error
+                if(document.getElementById('catalog-area')) {
+                     document.getElementById('catalog-area').innerHTML += '<p class="text-red-500 mt-4">Sync Error: Please check internet connection.</p>';
+                }
+            });
 
             onSnapshot(settingsRef, (docSnap) => {
                 if (docSnap.exists()) {
@@ -744,8 +762,9 @@
                 ? `<img src="${book.coverImage}" class="w-full h-full object-cover absolute inset-0 transition duration-300 group-hover:scale-110">`
                 : `<div class="absolute inset-0 ${book.coverColor} flex items-center justify-center"><span class="text-white font-bold text-4xl drop-shadow-md select-none">${title.charAt(0)}</span></div>`;
 
+            // FIX: Added quotes around ${book.id} to ensure it passes as a string
             return `
-                <div onclick="window.openReader(${book.id})" class="bg-white rounded-xl shadow-sm hover:shadow-lg transition cursor-pointer flex flex-col h-full overflow-hidden group border border-gray-100 transform hover:-translate-y-1 duration-300">
+                <div onclick="window.openReader('${book.id}')" class="bg-white rounded-xl shadow-sm hover:shadow-lg transition cursor-pointer flex flex-col h-full overflow-hidden group border border-gray-100 transform hover:-translate-y-1 duration-300">
                     <div class="h-48 relative overflow-hidden">
                         ${coverContent}
                         <div class="absolute inset-0 bg-black/0 group-hover:bg-black/10 transition duration-300"></div>
@@ -873,8 +892,9 @@
                                         </span>
                                     </td>
                                     <td class="px-4 py-3 text-right flex justify-end gap-2">
-                                        <button onclick="window.openBookEditor(${b.id})" class="text-neerada-600 hover:bg-neerada-50 p-2 rounded"><i data-lucide="edit" class="w-4 h-4"></i></button>
-                                        <button onclick="window.deleteBook(${b.id})" class="text-red-500 hover:bg-red-50 p-2 rounded"><i data-lucide="trash-2" class="w-4 h-4"></i></button>
+                                        <!-- FIX: Added quotes to IDs in onclick handlers -->
+                                        <button onclick="window.openBookEditor('${b.id}')" class="text-neerada-600 hover:bg-neerada-50 p-2 rounded"><i data-lucide="edit" class="w-4 h-4"></i></button>
+                                        <button onclick="window.deleteBook('${b.id}')" class="text-red-500 hover:bg-red-50 p-2 rounded"><i data-lucide="trash-2" class="w-4 h-4"></i></button>
                                     </td>
                                 </tr>
                             `).join('')}
@@ -959,7 +979,7 @@
         // Updated to use resizing
         function handleArrayImageUpload(input, key, index) {
             if (input.files && input.files[0]) {
-                resizeImage(input.files[0], 1024, 0.7).then(base64 => {
+                resizeImage(input.files[0]).then(base64 => {
                     state.appSettings[key][index] = base64;
                     saveSettings();
                     switchAdminTab('homepage');
@@ -969,7 +989,7 @@
 
         function handleObjImageUpload(input, parentKey, childKey) {
             if (input.files && input.files[0]) {
-                resizeImage(input.files[0], 1024, 0.7).then(base64 => {
+                resizeImage(input.files[0]).then(base64 => {
                     state.appSettings[parentKey][childKey] = base64;
                     saveSettings();
                     switchAdminTab('homepage');
@@ -1275,23 +1295,16 @@
                 pages: [{en: "", la: "", image: null}] 
             };
 
-            // If editing, try to load from state first
+            // FIX: Ensure ID comparison is string-based
             if (id) {
-                const found = state.books.find(b => b.id === id);
+                const strId = String(id);
+                const found = state.books.find(b => String(b.id) === strId);
                 if(found) {
                     book = { ...found }; // Basic metadata
-                    // Need to fetch full content including pages? 
-                    // For now, in single doc architecture, pages are inside.
-                    // If we migrated to multi-doc, we would need to fetch pages here.
-                    // BUT for now, to keep edit logic simple, we assume pages are in 'found' OR we fetch them.
-                    // Since 'setupRealtimeListeners' fetches 'neerada_books' which holds metadata,
-                    // we need to fetch the pages from 'neerada_book_pages' if they are missing.
+                    
+                    // Fetch pages if missing (for editing mode)
                     if(!book.pages) {
-                        // This part would be complex to add async fetching inside this sync function call.
-                        // For a school app, we might just assume we fetch pages when opening the reader
-                        // OR we fetch them now.
-                        // Let's implement a quick fetch for editing.
-                        fetchPagesForEditor(id).then(pages => {
+                        fetchPagesForEditor(strId).then(pages => {
                             if(pages) book.pages = pages;
                             populateEditor(book);
                         });
@@ -1309,8 +1322,8 @@
 
         // New helper to fetch pages just for editing
         async function fetchPagesForEditor(bookId) {
-            // We need to know how many pages. We stored pageCount in metadata.
-            const book = state.books.find(b => b.id === bookId);
+            // FIX: String comparison
+            const book = state.books.find(b => String(b.id) === String(bookId));
             if(!book || !book.pageCount) return [];
             
             const pages = [];
@@ -1410,28 +1423,28 @@
             // Metadata object (Lightweight)
             const bookId = state.editingBookId ? state.editingBookId : Date.now();
             const bookMetadata = {
-                id: bookId,
+                id: String(bookId), // Ensure ID is string
                 title, title_la, level, category, author, desc, desc_la: desc,
                 coverColor: "bg-gradient-to-br from-blue-100 to-blue-200", 
                 coverImage: coverImage,
                 pageCount: pageCount
             };
 
-            // Save Metadata to 'neerada_books'
             try {
-                await setDoc(doc(db, 'artifacts', appId, 'public', 'data', 'neerada_books', String(bookId)), bookMetadata);
-                
-                // Save Pages to 'neerada_book_pages' (One doc per page)
+                // FIX: Save Pages FIRST. This ensures content exists before metadata updates UI.
                 for(let i=0; i<pageCount; i++) {
                     const pageData = {
                         en: document.getElementById(`page-en-${i}`).value,
                         la: document.getElementById(`page-la-${i}`).value,
                         image: tempPageImages[i] || null,
-                        bookId: bookId,
+                        bookId: String(bookId),
                         pageIndex: i
                     };
                     await setDoc(doc(db, 'artifacts', appId, 'public', 'data', 'neerada_book_pages', `${bookId}_${i}`), pageData);
                 }
+
+                // Save Metadata to 'neerada_books' LAST (Triggers UI refresh)
+                await setDoc(doc(db, 'artifacts', appId, 'public', 'data', 'neerada_books', String(bookId)), bookMetadata);
 
                 alert("Book saved successfully!");
                 closeBookEditor();
@@ -1451,14 +1464,15 @@
         async function deleteBook(id, skipConfirm = false) {
             if(skipConfirm || window.confirm('Delete this book permanently? This will remove it from the app and database.')) {
                 try {
+                    const strId = String(id);
                     // 1. Get metadata to know page count
-                    const bookRef = doc(db, 'artifacts', appId, 'public', 'data', 'neerada_books', String(id));
+                    const bookRef = doc(db, 'artifacts', appId, 'public', 'data', 'neerada_books', strId);
                     const snap = await getDoc(bookRef);
                     if(snap.exists()) {
                         const count = snap.data().pageCount || 0;
                         // 2. Delete all pages
                         for(let i=0; i<count; i++) {
-                            await deleteDoc(doc(db, 'artifacts', appId, 'public', 'data', 'neerada_book_pages', `${id}_${i}`));
+                            await deleteDoc(doc(db, 'artifacts', appId, 'public', 'data', 'neerada_book_pages', `${strId}_${i}`));
                         }
                         // 3. Delete metadata
                         await deleteDoc(bookRef);
@@ -1490,12 +1504,10 @@
         }
 
         function exportData() {
-            // Simplified export: only metadata for now as full content is huge
-            // Or fetch everything. Let's do metadata only for quick backup.
             const dataStr = "data:text/json;charset=utf-8," + encodeURIComponent(JSON.stringify({books: state.books, settings: state.appSettings}));
             const downloadAnchorNode = document.createElement('a');
             downloadAnchorNode.setAttribute("href", dataStr);
-            downloadAnchorNode.setAttribute("download", "neerada_backup_metadata.json");
+            downloadAnchorNode.setAttribute("download", "neerada_backup.json");
             document.body.appendChild(downloadAnchorNode);
             downloadAnchorNode.click();
             downloadAnchorNode.remove();
@@ -1536,11 +1548,13 @@
                         </button>
                         
                         <div class="flex gap-4 items-center">
+                            <!-- Language Toggle Inside Reader -->
                             <button onclick="window.toggleReaderLang()" class="flex items-center gap-2 bg-black/5 hover:bg-black/10 px-3 py-1.5 rounded-full transition text-sm font-bold ${currentTheme.text}">
                                 <i data-lucide="globe" class="w-4 h-4"></i>
                                 <span id="reader-lang-btn-text">${state.lang.toUpperCase()}</span>
                             </button>
 
+                            <!-- Theme Switcher -->
                             <div class="flex gap-2">
                                 ${Object.keys(readerThemes).map(t => `
                                     <button onclick="window.setReaderTheme('${t}')" class="w-6 h-6 rounded-full border border-gray-300 shadow-sm ${readerThemes[t].bg} ${state.readerTheme === t ? 'ring-2 ring-neerada-500' : ''}" title="${readerThemes[t].name}"></button>
@@ -1552,10 +1566,15 @@
                     </div>
                     
                     <div class="flex-grow flex items-center justify-center p-4 md:p-8 overflow-hidden h-full relative">
+                        <!-- Split Layout Container -->
                         <div class="w-full max-w-6xl h-[85vh] rounded-3xl shadow-2xl flex flex-col md:flex-row overflow-hidden relative border border-gray-200/10 ${state.readerTheme === 'night' ? 'bg-gray-800' : 'bg-white/80 backdrop-blur-md'}" id="reader-content-box">
+                            
+                            <!-- Image Side -->
                             <div id="reader-image-container" class="hidden md:flex-1 bg-black/5 flex items-center justify-center p-4 relative">
                                 <img id="reader-image" src="" class="max-w-full max-h-full object-contain shadow-lg rounded-lg">
                             </div>
+
+                            <!-- Text Side -->
                             <div id="reader-text-container" class="flex-1 flex flex-col items-center justify-center p-8 md:p-12 overflow-y-auto relative ${currentTheme.text}">
                                 <h2 class="font-serif font-bold text-2xl mb-6 opacity-80" id="reader-header-title">Title</h2>
                                 <div class="font-serif text-lg md:text-xl leading-loose text-justify drop-cap-content max-w-prose" id="reader-text">
@@ -1565,6 +1584,7 @@
                         </div>
                     </div>
 
+                    <!-- Controls -->
                     <div class="p-4 border-t border-gray-200/20 flex justify-center gap-8 ${currentTheme.bg} relative z-20">
                         <button onclick="window.changeReaderPage(-1)" class="px-6 py-2 bg-gray-200/50 hover:bg-gray-200 text-gray-700 rounded-full font-bold transition flex items-center gap-2">
                             <i data-lucide="arrow-left" class="w-5 h-5"></i> Prev
@@ -1578,12 +1598,15 @@
         }
 
         async function openReader(id, pageIdx = 0) {
-            readerBook = state.books.find(b => b.id === id);
-            if(!readerBook) return; 
+            // FIX: String comparison for finding book
+            const strId = String(id);
+            readerBook = state.books.find(b => String(b.id) === strId);
+            if(!readerBook) { console.error("Book not found", id); return; }
             
             readerPageIdx = pageIdx;
+            readerCurrentPageData = null; // Reset previous page data
             
-            localStorage.setItem('neerada_reader_book', id);
+            localStorage.setItem('neerada_reader_book', strId);
             localStorage.setItem('neerada_reader_page', pageIdx);
 
             const wrapper = document.createElement('div');
@@ -1617,6 +1640,7 @@
                 }
             } catch(e) {
                 console.error("Error fetching page:", e);
+                document.getElementById('reader-text').innerText = "Error loading content.";
             }
         }
 
