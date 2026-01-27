@@ -1254,8 +1254,17 @@
         }
 
         // -- IMAGE RESIZING HELPER --
-        function resizeImage(file, maxWidth = 1024, quality = 0.7) {
+        function resizeImage(file, maxWidth = 1024) {
             return new Promise((resolve) => {
+                // If file is less than or equal to 200KB, use original
+                if (file.size <= 200 * 1024) {
+                    const reader = new FileReader();
+                    reader.readAsDataURL(file);
+                    reader.onload = (e) => resolve(e.target.result);
+                    return;
+                }
+
+                // Otherwise compress to max 170KB
                 const reader = new FileReader();
                 reader.readAsDataURL(file);
                 reader.onload = (event) => {
@@ -1275,7 +1284,18 @@
                         canvas.height = height;
                         const ctx = canvas.getContext('2d');
                         ctx.drawImage(img, 0, 0, width, height);
-                        resolve(canvas.toDataURL('image/jpeg', quality));
+                        
+                        let quality = 0.9;
+                        let dataUrl = canvas.toDataURL('image/jpeg', quality);
+                        const targetBytes = 170 * 1024;
+
+                        // Loop to reduce quality until size is under 170KB
+                        while (dataUrl.length * 0.75 > targetBytes && quality > 0.1) {
+                            quality -= 0.1;
+                            dataUrl = canvas.toDataURL('image/jpeg', quality);
+                        }
+                        
+                        resolve(dataUrl);
                     };
                 };
             });
@@ -1389,7 +1409,7 @@
         // Updated with resizeImage
         function handleCoverUpload(input) {
             if (input.files && input.files[0]) {
-                resizeImage(input.files[0], 1024, 0.7).then(base64 => {
+                resizeImage(input.files[0]).then(base64 => {
                     document.getElementById('edit-cover-data').value = base64;
                 });
             }
@@ -1398,7 +1418,7 @@
         // Updated with resizeImage
         function handlePageImageUpload(input, pageIndex) {
             if (input.files && input.files[0]) {
-                resizeImage(input.files[0], 1024, 0.7).then(base64 => {
+                resizeImage(input.files[0]).then(base64 => {
                     tempPageImages[pageIndex] = base64;
                     const span = input.nextElementSibling;
                     if(span) span.remove();
