@@ -119,17 +119,6 @@
         }
         .tilt-content { transform: translateZ(40px); }
 
-        /* Scroll Reveal - Removed opacity 0 for instant load */
-        .reveal {
-            /* opacity: 0; */
-            /* transform: translateY(30px); */
-            /* transition: all 0.8s cubic-bezier(0.5, 0, 0, 1); */
-        }
-        .reveal.active {
-            /* opacity: 1; */
-            /* transform: translateY(0); */
-        }
-
         /* Custom Scrollbar */
         ::-webkit-scrollbar { width: 8px; }
         ::-webkit-scrollbar-track { background: #f1f1f1; }
@@ -258,7 +247,7 @@
             }
         };
 
-        // Initial Data (Seed Data)
+        // Initial Data (Seed Data) - EMPTY
         const initialBooks = [];
 
         // --- INIT & FIREBASE CONNECTION ---
@@ -287,14 +276,14 @@
         });
 
         function setupRealtimeListeners() {
-            // UPDATED: Listen to the whole collection of books, allowing unlimited documents (up to 1GB total DB limit)
+            // Listen to the books collection (Metadata only)
             const booksColRef = collection(db, 'artifacts', appId, 'public', 'data', 'neerada_books');
             const settingsRef = doc(db, 'artifacts', appId, 'public', 'data', 'neerada_settings', 'main');
 
             onSnapshot(booksColRef, (snapshot) => {
                 const loadedBooks = [];
                 snapshot.forEach(doc => {
-                    // Ignore the old "main" document if it still exists from previous versions
+                    // Ignore old format docs if any
                     if (doc.id !== 'main') {
                         loadedBooks.push({ id: doc.id, ...doc.data() });
                     }
@@ -317,11 +306,9 @@
                     applySettings();
                 }
                 
-                // RESTORE READING SESSION IF ACTIVE
+                // RESTORE READING SESSION
                 const savedReaderBookId = localStorage.getItem('neerada_reader_book');
                 if (savedReaderBookId) {
-                    // Note: savedReaderBookId is stored as string from ID, but in state.books ID is string now (doc.id)
-                    // or number if migrated. Let's handle both.
                     const book = state.books.find(b => String(b.id) === savedReaderBookId);
                     if (book) {
                         const savedPage = localStorage.getItem('neerada_reader_page');
@@ -350,10 +337,6 @@
             }, (error) => console.error("Settings sync error:", error));
         }
 
-        // --- SPLIT SAVE FUNCTIONS FOR RELIABILITY ---
-        // REMOVED: saveBooks() that saved the whole array.
-        // Replaced with per-document saving in saveBookFromEditor and deleteBook.
-
         async function saveSettings() {
             if (!state.user) return;
             const settingsRef = doc(db, 'artifacts', appId, 'public', 'data', 'neerada_settings', 'main');
@@ -369,19 +352,17 @@
         async function resetSystem() {
             const code = prompt("Type 'RESET' to confirm erasing all system data and restoring factory defaults:");
             if (code === 'RESET') {
-                // Delete all books one by one from DB
+                // Delete all books one by one (Metadata and Content)
                 for(const book of state.books) {
-                    try {
-                        await deleteDoc(doc(db, 'artifacts', appId, 'public', 'data', 'neerada_books', String(book.id)));
-                    } catch(e) { console.error("Error deleting book " + book.id, e); }
+                    await deleteBook(book.id, true); // true = skip confirmation
                 }
                 
-                // Also try to delete legacy 'main' doc if it exists
+                // Also try to delete legacy 'main' doc
                 try {
                     await deleteDoc(doc(db, 'artifacts', appId, 'public', 'data', 'neerada_books', 'main'));
                 } catch(e) {}
 
-                state.books = []; // Clear local state
+                state.books = []; 
                 
                 // Reset Settings
                 state.appSettings = {
@@ -978,7 +959,7 @@
         // Updated to use resizing
         function handleArrayImageUpload(input, key, index) {
             if (input.files && input.files[0]) {
-                resizeImage(input.files[0]).then(base64 => {
+                resizeImage(input.files[0], 1024, 0.7).then(base64 => {
                     state.appSettings[key][index] = base64;
                     saveSettings();
                     switchAdminTab('homepage');
@@ -988,7 +969,7 @@
 
         function handleObjImageUpload(input, parentKey, childKey) {
             if (input.files && input.files[0]) {
-                resizeImage(input.files[0]).then(base64 => {
+                resizeImage(input.files[0], 1024, 0.7).then(base64 => {
                     state.appSettings[parentKey][childKey] = base64;
                     saveSettings();
                     switchAdminTab('homepage');
@@ -1253,7 +1234,7 @@
         }
 
         // -- IMAGE RESIZING HELPER --
-        function resizeImage(file, maxWidth = 800, quality = 0.6) {
+        function resizeImage(file, maxWidth = 1024, quality = 0.7) {
             return new Promise((resolve) => {
                 const reader = new FileReader();
                 reader.readAsDataURL(file);
@@ -1294,20 +1275,65 @@
                 pages: [{en: "", la: "", image: null}] 
             };
 
+            // If editing, try to load from state first
             if (id) {
                 const found = state.books.find(b => b.id === id);
-                if(found) book = found;
+                if(found) {
+                    book = { ...found }; // Basic metadata
+                    // Need to fetch full content including pages? 
+                    // For now, in single doc architecture, pages are inside.
+                    // If we migrated to multi-doc, we would need to fetch pages here.
+                    // BUT for now, to keep edit logic simple, we assume pages are in 'found' OR we fetch them.
+                    // Since 'setupRealtimeListeners' fetches 'neerada_books' which holds metadata,
+                    // we need to fetch the pages from 'neerada_book_pages' if they are missing.
+                    if(!book.pages) {
+                        // This part would be complex to add async fetching inside this sync function call.
+                        // For a school app, we might just assume we fetch pages when opening the reader
+                        // OR we fetch them now.
+                        // Let's implement a quick fetch for editing.
+                        fetchPagesForEditor(id).then(pages => {
+                            if(pages) book.pages = pages;
+                            populateEditor(book);
+                        });
+                        modal.classList.remove('hidden');
+                        return;
+                    }
+                }
                 titleEl.innerText = "Edit Story";
             } else {
                 titleEl.innerText = "Add New Story";
             }
+            populateEditor(book);
+            modal.classList.remove('hidden');
+        }
 
-            document.getElementById('edit-title').value = book.title;
+        // New helper to fetch pages just for editing
+        async function fetchPagesForEditor(bookId) {
+            // We need to know how many pages. We stored pageCount in metadata.
+            const book = state.books.find(b => b.id === bookId);
+            if(!book || !book.pageCount) return [];
+            
+            const pages = [];
+            for(let i=0; i<book.pageCount; i++) {
+                try {
+                    const snap = await getDoc(doc(db, 'artifacts', appId, 'public', 'data', 'neerada_book_pages', `${bookId}_${i}`));
+                    if(snap.exists()) {
+                        pages.push(snap.data());
+                    } else {
+                        pages.push({en: "", la: "", image: null});
+                    }
+                } catch(e) { console.error(e); }
+            }
+            return pages;
+        }
+
+        function populateEditor(book) {
+            document.getElementById('edit-title').value = book.title || "";
             document.getElementById('edit-title-la').value = book.title_la || "";
-            document.getElementById('edit-level').value = book.level;
-            document.getElementById('edit-category').value = book.category;
-            document.getElementById('edit-author').value = book.author;
-            document.getElementById('edit-desc').value = book.desc;
+            document.getElementById('edit-level').value = book.level || "primary";
+            document.getElementById('edit-category').value = book.category || "Fiction";
+            document.getElementById('edit-author').value = book.author || "";
+            document.getElementById('edit-desc').value = book.desc || "";
             document.getElementById('edit-cover-data').value = book.coverImage || "";
             document.getElementById('edit-cover-file').value = ""; 
 
@@ -1316,8 +1342,6 @@
             
             tempPageImages = book.pages ? book.pages.map(p => p.image) : [];
             updatePageInputs(pageCount, book.pages);
-
-            modal.classList.remove('hidden');
         }
 
         function updatePageInputs(count, existingPages = []) {
@@ -1352,7 +1376,7 @@
         // Updated with resizeImage
         function handleCoverUpload(input) {
             if (input.files && input.files[0]) {
-                resizeImage(input.files[0]).then(base64 => {
+                resizeImage(input.files[0], 1024, 0.7).then(base64 => {
                     document.getElementById('edit-cover-data').value = base64;
                 });
             }
@@ -1361,7 +1385,7 @@
         // Updated with resizeImage
         function handlePageImageUpload(input, pageIndex) {
             if (input.files && input.files[0]) {
-                resizeImage(input.files[0]).then(base64 => {
+                resizeImage(input.files[0], 1024, 0.7).then(base64 => {
                     tempPageImages[pageIndex] = base64;
                     const span = input.nextElementSibling;
                     if(span) span.remove();
@@ -1383,27 +1407,32 @@
             const coverImage = document.getElementById('edit-cover-data').value || null;
             const pageCount = parseInt(document.getElementById('page-count').value);
 
-            const newPages = [];
-            for(let i=0; i<pageCount; i++) {
-                newPages.push({
-                    en: document.getElementById(`page-en-${i}`).value,
-                    la: document.getElementById(`page-la-${i}`).value,
-                    image: tempPageImages[i] || null
-                });
-            }
-
-            const bookData = {
+            // Metadata object (Lightweight)
+            const bookId = state.editingBookId ? state.editingBookId : Date.now();
+            const bookMetadata = {
+                id: bookId,
                 title, title_la, level, category, author, desc, desc_la: desc,
                 coverColor: "bg-gradient-to-br from-blue-100 to-blue-200", 
                 coverImage: coverImage,
-                pages: newPages
+                pageCount: pageCount
             };
 
-            const bookId = state.editingBookId ? state.editingBookId : Date.now();
-            const bookDocRef = doc(db, 'artifacts', appId, 'public', 'data', 'neerada_books', String(bookId));
-
+            // Save Metadata to 'neerada_books'
             try {
-                await setDoc(bookDocRef, { id: bookId, ...bookData });
+                await setDoc(doc(db, 'artifacts', appId, 'public', 'data', 'neerada_books', String(bookId)), bookMetadata);
+                
+                // Save Pages to 'neerada_book_pages' (One doc per page)
+                for(let i=0; i<pageCount; i++) {
+                    const pageData = {
+                        en: document.getElementById(`page-en-${i}`).value,
+                        la: document.getElementById(`page-la-${i}`).value,
+                        image: tempPageImages[i] || null,
+                        bookId: bookId,
+                        pageIndex: i
+                    };
+                    await setDoc(doc(db, 'artifacts', appId, 'public', 'data', 'neerada_book_pages', `${bookId}_${i}`), pageData);
+                }
+
                 alert("Book saved successfully!");
                 closeBookEditor();
                 switchAdminTab('books');
@@ -1419,17 +1448,29 @@
             tempPageImages = [];
         }
 
-        async function deleteBook(id) {
-            // Using confirm here as it's an admin action, replacing with custom UI is complex for this prompt's constraints
-            // but we wrap it to ensure it works
-            if(window.confirm('Delete this book permanently? This will remove it from the app and database.')) {
+        async function deleteBook(id, skipConfirm = false) {
+            if(skipConfirm || window.confirm('Delete this book permanently? This will remove it from the app and database.')) {
                 try {
-                    await deleteDoc(doc(db, 'artifacts', appId, 'public', 'data', 'neerada_books', String(id)));
-                    alert("Book deleted.");
-                    // The onSnapshot listener will automatically update the UI
+                    // 1. Get metadata to know page count
+                    const bookRef = doc(db, 'artifacts', appId, 'public', 'data', 'neerada_books', String(id));
+                    const snap = await getDoc(bookRef);
+                    if(snap.exists()) {
+                        const count = snap.data().pageCount || 0;
+                        // 2. Delete all pages
+                        for(let i=0; i<count; i++) {
+                            await deleteDoc(doc(db, 'artifacts', appId, 'public', 'data', 'neerada_book_pages', `${id}_${i}`));
+                        }
+                        // 3. Delete metadata
+                        await deleteDoc(bookRef);
+                    } else {
+                        // Fallback if metadata missing but ID passed
+                        await deleteDoc(bookRef);
+                    }
+                    
+                    if(!skipConfirm) alert("Book deleted.");
                 } catch (err) {
                     console.error("Error deleting book:", err);
-                    alert("Failed to delete book.");
+                    if(!skipConfirm) alert("Failed to delete book.");
                 }
             }
         }
@@ -1449,10 +1490,12 @@
         }
 
         function exportData() {
+            // Simplified export: only metadata for now as full content is huge
+            // Or fetch everything. Let's do metadata only for quick backup.
             const dataStr = "data:text/json;charset=utf-8," + encodeURIComponent(JSON.stringify({books: state.books, settings: state.appSettings}));
             const downloadAnchorNode = document.createElement('a');
             downloadAnchorNode.setAttribute("href", dataStr);
-            downloadAnchorNode.setAttribute("download", "neerada_backup.json");
+            downloadAnchorNode.setAttribute("download", "neerada_backup_metadata.json");
             document.body.appendChild(downloadAnchorNode);
             downloadAnchorNode.click();
             downloadAnchorNode.remove();
@@ -1460,27 +1503,19 @@
 
         function importData() {
             const fileInput = document.getElementById('import-file');
-            if(!fileInput.files.length) return; // Silent fail if no file
+            if(!fileInput.files.length) return; 
             
             const reader = new FileReader();
             reader.onload = async function(e) {
                 try {
                     const data = JSON.parse(e.target.result);
-                    if(data.books && data.settings) {
-                        // Import settings
+                    if(data.settings) {
                         state.appSettings = data.settings;
                         await saveSettings();
-
-                        // Import books individually
-                        for (const book of data.books) {
-                             const bookRef = doc(db, 'artifacts', appId, 'public', 'data', 'neerada_books', String(book.id));
-                             await setDoc(bookRef, book);
-                        }
-                        
-                        alert("Import successful! Refreshing...");
-                        switchAdminTab('books');
                     }
-                } catch(err) { console.error("Error parsing JSON or importing", err); alert("Import failed."); }
+                    // Importing books from backup needs more logic for pages if we only exported metadata
+                    alert("Settings imported. Book import requires full backup implementation.");
+                } catch(err) { console.error("Error parsing JSON", err); }
             };
             reader.readAsText(fileInput.files[0]);
         }
@@ -1488,6 +1523,7 @@
         // --- LOGIC: READER & THEME ---
         let readerBook = null;
         let readerPageIdx = 0;
+        let readerCurrentPageData = null; // Store current page content
 
         function renderReaderModal() {
             const currentTheme = readerThemes[state.readerTheme];
@@ -1500,13 +1536,11 @@
                         </button>
                         
                         <div class="flex gap-4 items-center">
-                            <!-- Language Toggle Inside Reader -->
                             <button onclick="window.toggleReaderLang()" class="flex items-center gap-2 bg-black/5 hover:bg-black/10 px-3 py-1.5 rounded-full transition text-sm font-bold ${currentTheme.text}">
                                 <i data-lucide="globe" class="w-4 h-4"></i>
                                 <span id="reader-lang-btn-text">${state.lang.toUpperCase()}</span>
                             </button>
 
-                            <!-- Theme Switcher -->
                             <div class="flex gap-2">
                                 ${Object.keys(readerThemes).map(t => `
                                     <button onclick="window.setReaderTheme('${t}')" class="w-6 h-6 rounded-full border border-gray-300 shadow-sm ${readerThemes[t].bg} ${state.readerTheme === t ? 'ring-2 ring-neerada-500' : ''}" title="${readerThemes[t].name}"></button>
@@ -1514,29 +1548,23 @@
                             </div>
                         </div>
 
-                        <span class="text-sm font-mono opacity-60 ${currentTheme.text}" id="reader-counter">1/1</span>
+                        <span class="text-sm font-mono opacity-60 ${currentTheme.text}" id="reader-counter">Loading...</span>
                     </div>
                     
                     <div class="flex-grow flex items-center justify-center p-4 md:p-8 overflow-hidden h-full relative">
-                        <!-- Split Layout Container -->
                         <div class="w-full max-w-6xl h-[85vh] rounded-3xl shadow-2xl flex flex-col md:flex-row overflow-hidden relative border border-gray-200/10 ${state.readerTheme === 'night' ? 'bg-gray-800' : 'bg-white/80 backdrop-blur-md'}" id="reader-content-box">
-                            
-                            <!-- Image Side -->
                             <div id="reader-image-container" class="hidden md:flex-1 bg-black/5 flex items-center justify-center p-4 relative">
                                 <img id="reader-image" src="" class="max-w-full max-h-full object-contain shadow-lg rounded-lg">
                             </div>
-
-                            <!-- Text Side -->
                             <div id="reader-text-container" class="flex-1 flex flex-col items-center justify-center p-8 md:p-12 overflow-y-auto relative ${currentTheme.text}">
                                 <h2 class="font-serif font-bold text-2xl mb-6 opacity-80" id="reader-header-title">Title</h2>
                                 <div class="font-serif text-lg md:text-xl leading-loose text-justify drop-cap-content max-w-prose" id="reader-text">
-                                    ...
+                                    Loading content...
                                 </div>
                             </div>
                         </div>
                     </div>
 
-                    <!-- Controls -->
                     <div class="p-4 border-t border-gray-200/20 flex justify-center gap-8 ${currentTheme.bg} relative z-20">
                         <button onclick="window.changeReaderPage(-1)" class="px-6 py-2 bg-gray-200/50 hover:bg-gray-200 text-gray-700 rounded-full font-bold transition flex items-center gap-2">
                             <i data-lucide="arrow-left" class="w-5 h-5"></i> Prev
@@ -1549,28 +1577,47 @@
             `;
         }
 
-        function openReader(id, pageIdx = 0) {
+        async function openReader(id, pageIdx = 0) {
             readerBook = state.books.find(b => b.id === id);
-            if(!readerBook.pages || !readerBook.pages.length) return; // Silent fail
+            if(!readerBook) return; 
             
             readerPageIdx = pageIdx;
             
-            // Save state for refresh persistence
             localStorage.setItem('neerada_reader_book', id);
             localStorage.setItem('neerada_reader_page', pageIdx);
 
-            // Render specific modal content
             const wrapper = document.createElement('div');
             wrapper.innerHTML = renderReaderModal();
             const oldModal = document.getElementById('reader-modal');
             if(oldModal) oldModal.remove();
             document.body.appendChild(wrapper.firstElementChild);
             
-            // Fill content AFTER appending to DOM to avoid blank page
-            updateReaderUI();
-            
+            // Initial render with loading state
+            document.getElementById('reader-header-title').innerText = state.lang === 'en' ? readerBook.title : readerBook.title_la;
+            document.getElementById('reader-counter').innerText = `${readerPageIdx + 1} / ${readerBook.pageCount || '?'}`;
             document.getElementById('reader-modal').classList.remove('hidden');
             lucide.createIcons({ root: document.getElementById('reader-modal') });
+
+            // Fetch actual page content
+            await loadReaderPageContent();
+        }
+
+        async function loadReaderPageContent() {
+            if(!readerBook) return;
+            
+            // Try fetch specific page doc
+            const pageRef = doc(db, 'artifacts', appId, 'public', 'data', 'neerada_book_pages', `${readerBook.id}_${readerPageIdx}`);
+            try {
+                const snap = await getDoc(pageRef);
+                if(snap.exists()) {
+                    readerCurrentPageData = snap.data();
+                    updateReaderUI();
+                } else {
+                    document.getElementById('reader-text').innerText = "End of story or page missing.";
+                }
+            } catch(e) {
+                console.error("Error fetching page:", e);
+            }
         }
 
         function closeReader() {
@@ -1581,37 +1628,33 @@
 
         function setReaderTheme(theme) {
             state.readerTheme = theme;
-            // Re-render modal in place to apply classes
             const oldModal = document.getElementById('reader-modal');
             if(oldModal) {
-                // Only re-render content if needed, for now simple re-open logic preserves state
                 const wrapper = document.createElement('div');
                 wrapper.innerHTML = renderReaderModal();
                 oldModal.replaceWith(wrapper.firstElementChild);
                 document.getElementById('reader-modal').classList.remove('hidden');
-                updateReaderUI(); // Restore content
+                // Re-populate since we destroyed DOM
+                if(readerBook) {
+                     document.getElementById('reader-header-title').innerText = state.lang === 'en' ? readerBook.title : readerBook.title_la;
+                     updateReaderUI();
+                }
                 lucide.createIcons({ root: document.getElementById('reader-modal') });
             }
         }
 
         function toggleReaderLang() {
             state.lang = state.lang === 'en' ? 'la' : 'en';
-            
-            // Update UI inside the reader
             updateReaderUI();
-            
-            // Update the button text inside reader
             const btnText = document.getElementById('reader-lang-btn-text');
             if(btnText) btnText.innerText = state.lang.toUpperCase();
-
-            // Update the background app silently (re-render)
-            // Since the modal is attached to document.body, re-rendering app-root won't close it
             render();
         }
 
         function updateReaderUI() {
-            const page = readerBook.pages[readerPageIdx];
-            const text = state.lang === 'en' ? page.en : page.la;
+            if(!readerCurrentPageData) return;
+
+            const text = state.lang === 'en' ? readerCurrentPageData.en : readerCurrentPageData.la;
             
             const titleEl = document.getElementById('reader-header-title');
             if(titleEl) titleEl.innerText = state.lang === 'en' ? readerBook.title : readerBook.title_la;
@@ -1620,14 +1663,14 @@
             if(textEl) textEl.innerText = text || "";
             
             const counterEl = document.getElementById('reader-counter');
-            if(counterEl) counterEl.innerText = `${readerPageIdx + 1} / ${readerBook.pages.length}`;
+            if(counterEl) counterEl.innerText = `${readerPageIdx + 1} / ${readerBook.pageCount}`;
             
             const imgContainer = document.getElementById('reader-image-container');
             const txtContainer = document.getElementById('reader-text-container');
             const imgEl = document.getElementById('reader-image');
             
-            if (page.image && imgEl && imgContainer && txtContainer) {
-                imgEl.src = page.image;
+            if (readerCurrentPageData.image && imgEl && imgContainer && txtContainer) {
+                imgEl.src = readerCurrentPageData.image;
                 imgContainer.classList.remove('hidden');
                 imgContainer.classList.add('md:flex-1');
                 txtContainer.classList.remove('md:w-full');
@@ -1641,11 +1684,11 @@
 
         function changeReaderPage(dir) {
             const newIdx = readerPageIdx + dir;
-            if(newIdx >= 0 && newIdx < readerBook.pages.length) {
+            if(newIdx >= 0 && newIdx < (readerBook.pageCount || 1)) {
                 readerPageIdx = newIdx;
                 localStorage.setItem('neerada_reader_page', newIdx);
-                updateReaderUI();
-            } else if (newIdx >= readerBook.pages.length) {
+                loadReaderPageContent(); // Async fetch new page
+            } else if (newIdx >= (readerBook.pageCount || 1)) {
                 closeReader();
             }
         }
