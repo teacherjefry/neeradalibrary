@@ -203,6 +203,7 @@
                 faviconUrl: null,
                 websiteUrl: "https://neeradaschool.edu.la",
                 adminCode: "0000",
+                systemLocked: false, // Global Lock Status
                 categories: ["Fiction", "Action", "Horror", "Moral Stories", "Science", "History", "Kids"],
                 newArrivals: [], // List of book IDs for custom New Arrivals
                 galleryImages: [
@@ -305,7 +306,7 @@
                 if(document.getElementById('app-root').innerHTML.includes('animate-spin')) {
                     const storedView = localStorage.getItem('neerada_current_view');
                     const storedLevel = localStorage.getItem('neerada_collection_level');
-                    const isSystemLocked = localStorage.getItem('neerada_system_locked');
+                    // Removed local storage check for lock, rely on DB
 
                     if(storedLevel) state.currentCollectionLevel = storedLevel;
 
@@ -313,12 +314,7 @@
                         state.isAdmin = true;
                     }
 
-                    // Check Lock Status
-                    if (isSystemLocked === 'true') {
-                        state.view = 'system-locked';
-                    } else if(storedView) {
-                        state.view = storedView;
-                    }
+                    if(storedView) state.view = storedView;
 
                     lucide.createIcons();
                     document.addEventListener('mousemove', handleTilt);
@@ -356,6 +352,14 @@
                     if(!state.appSettings.categories) state.appSettings.categories = ["Fiction", "Action", "Horror", "Moral Stories", "Science", "History", "Kids"];
                     if(!state.appSettings.adminCode) state.appSettings.adminCode = "0000";
                     if(!state.appSettings.newArrivals) state.appSettings.newArrivals = [];
+                    
+                    // GLOBAL LOCK CHECK
+                    if (state.appSettings.systemLocked === true) {
+                        state.view = 'system-locked';
+                    } else if (state.view === 'system-locked') {
+                        state.view = 'landing'; // Auto unlock
+                    }
+
                 } else {
                     setDoc(settingsRef, state.appSettings);
                 }
@@ -398,6 +402,7 @@
                     faviconUrl: null,
                     websiteUrl: "https://neeradaschool.edu.la",
                     adminCode: "0000",
+                    systemLocked: false,
                     categories: ["Fiction", "Action", "Horror", "Moral Stories", "Science", "History", "Kids"],
                     newArrivals: [],
                     galleryImages: [
@@ -876,26 +881,24 @@
         }
 
         // --- LOGIC: SYSTEM LOCK/UNLOCK ---
-        window.initiateSystemLock = function() {
+        window.initiateSystemLock = async function() {
             const answer = prompt("Security Check: What is your birthday?");
             if(answer === "10061988Jef") {
-                if(confirm("Are you sure you want to LOCK the system?")) {
-                    localStorage.setItem('neerada_system_locked', 'true');
-                    state.view = 'system-locked';
-                    render();
+                if(confirm("Are you sure you want to LOCK the system GLOBALLY?")) {
+                    state.appSettings.systemLocked = true;
+                    await saveSettings();
                 }
             } else {
                 alert("Incorrect security answer.");
             }
         }
 
-        window.unlockSystemAttempt = function() {
+        window.unlockSystemAttempt = async function() {
             const code = prompt("Enter Unlock Code:");
             if(code === state.appSettings.adminCode) {
-                localStorage.removeItem('neerada_system_locked');
-                state.view = 'landing'; // Or return to admin login
-                render();
-                alert("System Unlocked.");
+                state.appSettings.systemLocked = false;
+                await saveSettings();
+                alert("System Unlocked Globally.");
             } else {
                 alert("Access Denied.");
             }
