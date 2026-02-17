@@ -170,13 +170,13 @@
         // 🔥 PASTE YOUR FIREBASE CONFIGURATION BELOW 🔥
         // ------------------------------------------------------------------
         const firebaseConfig = {
-  apiKey: "AIzaSyBGBjlqw3DFiSsk16Xqwmcy_QimoFAqN4M",
-  authDomain: "neerada-library.firebaseapp.com",
-  projectId: "neerada-library",
-  storageBucket: "neerada-library.firebasestorage.app",
-  messagingSenderId: "126189326485",
-  appId: "1:126189326485:web:d8f0ddec0130d27a710b9c"
-};
+            apiKey: "AIzaSyBGBjlqw3DFiSsk16Xqwmcy_QimoFAqN4M",
+            authDomain: "neerada-library.firebaseapp.com",
+            projectId: "neerada-library",
+            storageBucket: "neerada-library.firebasestorage.app",
+            messagingSenderId: "126189326485",
+            appId: "1:126189326485:web:d8f0ddec0130d27a710b9c"
+        };
 
 
         // ------------------------------------------------------------------
@@ -304,13 +304,21 @@
                 if(document.getElementById('app-root').innerHTML.includes('animate-spin')) {
                     const storedView = localStorage.getItem('neerada_current_view');
                     const storedLevel = localStorage.getItem('neerada_collection_level');
+                    const isSystemLocked = localStorage.getItem('neerada_system_locked');
+
                     if(storedLevel) state.currentCollectionLevel = storedLevel;
 
                     if(localStorage.getItem('neerada_admin_session') === 'true') {
                         state.isAdmin = true;
                     }
 
-                    if(storedView) state.view = storedView;
+                    // Check Lock Status
+                    if (isSystemLocked === 'true') {
+                        state.view = 'system-locked';
+                    } else if(storedView) {
+                        state.view = storedView;
+                    }
+
                     lucide.createIcons();
                     document.addEventListener('mousemove', handleTilt);
                     setupObserver();
@@ -320,7 +328,6 @@
                 // RESTORE READING SESSION
                 const savedReaderBookId = localStorage.getItem('neerada_reader_book');
                 if (savedReaderBookId) {
-                    // FIX: Ensure ID comparison handles both strings and numbers
                     const book = state.books.find(b => String(b.id) === savedReaderBookId);
                     if (book) {
                         const savedPage = localStorage.getItem('neerada_reader_page');
@@ -335,7 +342,7 @@
                 console.error("Books sync error:", error);
                 // Visual feedback for connection error
                 if(document.getElementById('catalog-area')) {
-                     document.getElementById('catalog-area').innerHTML += '<p class="text-red-500 mt-4">Sync Error: Please check internet connection.</p>';
+                      document.getElementById('catalog-area').innerHTML += '<p class="text-red-500 mt-4">Sync Error: Please check internet connection.</p>';
                 }
             });
 
@@ -457,6 +464,7 @@
             else if (state.view === 'collection') content = renderCollectionPage();
             else if (state.view === 'admin-login') content = renderAdminLogin();
             else if (state.view === 'admin-dashboard') content = renderAdminDashboard();
+            else if (state.view === 'system-locked') content = renderSystemLocked();
             
             root.innerHTML = content;
             if(state.view === 'admin-dashboard') bindAdminEvents();
@@ -781,8 +789,13 @@
         // --- VIEW: ADMIN LOGIN ---
         function renderAdminLogin() {
             return `
-                <div class="min-h-screen flex items-center justify-center bg-gray-100 px-4">
-                    <div class="bg-white p-8 rounded-2xl shadow-xl w-full max-w-md">
+                <div class="min-h-screen flex items-center justify-center bg-gray-100 px-4 relative">
+                    <div class="bg-white p-8 rounded-2xl shadow-xl w-full max-w-md relative overflow-hidden">
+                        <!-- Secret Lock Trigger -->
+                        <div onclick="window.initiateSystemLock()" class="absolute top-4 right-4 p-2 cursor-pointer opacity-10 hover:opacity-100 transition-opacity duration-300 z-50">
+                            <i data-lucide="shield-alert" class="w-4 h-4 text-red-500"></i>
+                        </div>
+
                         <div class="text-center mb-8">
                             <div class="w-12 h-12 bg-neerada-900 rounded-lg flex items-center justify-center text-white mx-auto mb-4">
                                 <i data-lucide="lock" class="w-6 h-6"></i>
@@ -819,6 +832,57 @@
             } else {
                 codeInput.classList.add('border-red-500', 'ring-2', 'ring-red-200');
                 setTimeout(() => codeInput.classList.remove('border-red-500', 'ring-2', 'ring-red-200'), 500);
+            }
+        }
+
+        // --- NEW VIEW: SYSTEM LOCKED ---
+        function renderSystemLocked() {
+            return `
+                <div class="min-h-screen bg-red-950 flex flex-col items-center justify-center text-white relative overflow-hidden">
+                     <div class="absolute inset-0 opacity-10" style="background-image: repeating-linear-gradient(45deg, #000 25%, transparent 25%, transparent 75%, #000 75%, #000), repeating-linear-gradient(45deg, #000 25%, #222 25%, #222 75%, #000 75%, #000); background-position: 0 0, 10px 10px; background-size: 20px 20px;"></div>
+                     
+                     <div class="z-10 text-center p-12 border-4 border-red-600 rounded-3xl bg-black/80 backdrop-blur-xl shadow-2xl animate-pulse max-w-2xl mx-4">
+                        <i data-lucide="lock" class="w-24 h-24 mx-auto mb-6 text-red-500"></i>
+                        <h1 class="text-5xl md:text-6xl font-black mb-4 tracking-tighter text-red-500">SYSTEM LOCKED</h1>
+                        <p class="text-xl md:text-2xl font-mono text-red-200 mb-8">ACCESS DENIED due to security protocol.</p>
+                        
+                        <div class="p-6 bg-red-900/40 rounded-xl border border-red-700/50">
+                            <p class="font-bold text-xl mb-1 text-white">CONTACT THE ADMINISTRATOR</p>
+                            <p class="text-sm text-red-300 font-mono">Error Code: SEC-L1-AUTH-FAIL</p>
+                        </div>
+                     </div>
+                     
+                     <!-- Secret Unlock Button (Bottom Right) -->
+                     <div onclick="window.unlockSystemAttempt()" class="fixed bottom-0 right-0 w-16 h-16 cursor-default z-50 flex items-end justify-end p-2 opacity-0 hover:opacity-100 transition-opacity duration-300">
+                        <div class="w-4 h-4 bg-red-500/20 rounded-full"></div>
+                     </div>
+                </div>
+            `;
+        }
+
+        // --- LOGIC: SYSTEM LOCK/UNLOCK ---
+        window.initiateSystemLock = function() {
+            const answer = prompt("Security Check: What is your birthday?");
+            if(answer === "10061988Jef") {
+                if(confirm("Are you sure you want to LOCK the system?")) {
+                    localStorage.setItem('neerada_system_locked', 'true');
+                    state.view = 'system-locked';
+                    render();
+                }
+            } else {
+                alert("Incorrect security answer.");
+            }
+        }
+
+        window.unlockSystemAttempt = function() {
+            const code = prompt("Enter Unlock Code:");
+            if(code === state.appSettings.adminCode) {
+                localStorage.removeItem('neerada_system_locked');
+                state.view = 'landing'; // Or return to admin login
+                render();
+                alert("System Unlocked.");
+            } else {
+                alert("Access Denied.");
             }
         }
 
@@ -1680,8 +1744,8 @@
                 document.getElementById('reader-modal').classList.remove('hidden');
                 // Re-populate since we destroyed DOM
                 if(readerBook) {
-                     document.getElementById('reader-header-title').innerText = state.lang === 'en' ? readerBook.title : readerBook.title_la;
-                     updateReaderUI();
+                      document.getElementById('reader-header-title').innerText = state.lang === 'en' ? readerBook.title : readerBook.title_la;
+                      updateReaderUI();
                 }
                 lucide.createIcons({ root: document.getElementById('reader-modal') });
             }
@@ -1792,6 +1856,8 @@
         window.removeCategory = removeCategory;
         window.resizeImage = resizeImage;
         window.toggleReaderLang = toggleReaderLang;
+        window.initiateSystemLock = initiateSystemLock;
+        window.unlockSystemAttempt = unlockSystemAttempt;
 
     </script>
 </body>
