@@ -1717,7 +1717,7 @@
                         <span class="text-sm font-mono opacity-60 ${currentTheme.text}" id="reader-counter">Loading...</span>
                     </div>
                     
-                    <div class="flex-grow flex items-center justify-center p-4 md:p-8 overflow-hidden h-full relative">
+                    <div class="flex-grow flex items-center justify-center p-4 md:p-8 overflow-hidden h-full relative" id="reader-scroll-area">
                         <!-- Split Layout Container -->
                         <div class="w-full max-w-6xl h-[85vh] rounded-3xl shadow-2xl flex flex-col md:flex-row overflow-hidden relative border border-gray-200/10 ${state.readerTheme === 'night' ? 'bg-gray-800' : 'bg-white/80 backdrop-blur-md'}" id="reader-content-box">
                             
@@ -1752,6 +1752,90 @@
         // --- NEW: Scroll and Keyboard Input Handler ---
         let lastInputTime = 0;
         const INPUT_COOLDOWN = 500; // ms
+        
+        // Touch handling variables
+        let touchStartX = 0;
+        let touchStartY = 0;
+
+        // Add Listeners on Load/Open
+        function attachReaderListeners() {
+            window.addEventListener('keydown', handleReaderInput);
+            window.addEventListener('wheel', handleReaderInput, { passive: false });
+            
+            // Touch events on the modal/scroll area
+            const modal = document.getElementById('reader-modal');
+            if(modal) {
+                modal.addEventListener('touchstart', handleTouchStart, { passive: false });
+                modal.addEventListener('touchend', handleTouchEnd, { passive: false });
+            }
+        }
+
+        function removeReaderListeners() {
+            window.removeEventListener('keydown', handleReaderInput);
+            window.removeEventListener('wheel', handleReaderInput);
+            const modal = document.getElementById('reader-modal');
+            if(modal) {
+                modal.removeEventListener('touchstart', handleTouchStart);
+                modal.removeEventListener('touchend', handleTouchEnd);
+            }
+        }
+
+        function handleTouchStart(e) {
+            touchStartX = e.changedTouches[0].screenX;
+            touchStartY = e.changedTouches[0].screenY;
+        }
+
+        function handleTouchEnd(e) {
+            if (document.getElementById('reader-modal').classList.contains('hidden')) return;
+            
+            const touchEndX = e.changedTouches[0].screenX;
+            const touchEndY = e.changedTouches[0].screenY;
+            
+            handleSwipe(touchStartX, touchStartY, touchEndX, touchEndY);
+        }
+
+        function handleSwipe(sx, sy, ex, ey) {
+            const dx = ex - sx;
+            const dy = ey - sy;
+            const absDx = Math.abs(dx);
+            const absDy = Math.abs(dy);
+
+            if (Math.max(absDx, absDy) < 50) return; // Threshold
+
+            const isSecondary = readerBook && readerBook.level === 'secondary';
+            const textContainer = document.getElementById('reader-text-container');
+            
+            // For Secondary: Vertical Navigation preferred (Up/Down)
+            // For Others: Horizontal Navigation (Left/Right)
+            
+            if (isSecondary) {
+                // Vertical Swipe Logic
+                // Swipe Up (dy < 0) -> Scroll Down / Next Page
+                // Swipe Down (dy > 0) -> Scroll Up / Prev Page
+                
+                if (absDy > absDx) {
+                    if (dy < 0) { // Swiping UP (Finger moves up, content moves down)
+                        // Logic: If scrolling content, let native scroll happen? 
+                        // But touch end happens after scroll.
+                        // Check if we hit bottom
+                        if (textContainer && (textContainer.scrollTop + textContainer.clientHeight >= textContainer.scrollHeight - 5)) {
+                             changeReaderPage(1);
+                        }
+                    } else { // Swiping DOWN (Finger moves down, content moves up)
+                        // Check if at top
+                        if (textContainer && textContainer.scrollTop <= 0) {
+                            changeReaderPage(-1);
+                        }
+                    }
+                }
+            } else {
+                // Horizontal Swipe Logic (Standard)
+                if (absDx > absDy) {
+                    if (dx < 0) changeReaderPage(1); // Swipe Left -> Next
+                    else changeReaderPage(-1);       // Swipe Right -> Prev
+                }
+            }
+        }
 
         function handleReaderInput(e) {
             if (document.getElementById('reader-modal').classList.contains('hidden')) return;
@@ -1771,17 +1855,32 @@
                     closeReader();
                 }
             } else if (e.type === 'wheel') {
+                const isSecondary = readerBook && readerBook.level === 'secondary';
                 const textContainer = document.getElementById('reader-text-container');
                 
-                // Smart Scroll: If hovering over text and text is scrollable, do not turn page.
+                // Smart Scroll Logic
                 if (textContainer && textContainer.contains(e.target)) {
-                   if (textContainer.scrollHeight > textContainer.clientHeight) {
-                       // Allow native scroll
-                       return; 
+                   // Allow normal scroll if content overflows
+                   // Only trigger page turn if at boundaries
+                   
+                   if (e.deltaY > 0) { // Scroll Down
+                       // If at bottom, go next
+                       if (textContainer.scrollTop + textContainer.clientHeight >= textContainer.scrollHeight - 1) {
+                           changeReaderPage(1);
+                           lastInputTime = now;
+                       }
+                       // Else let native scroll happen
+                   } else if (e.deltaY < 0) { // Scroll Up
+                       // If at top, go prev
+                       if (textContainer.scrollTop <= 0) {
+                           changeReaderPage(-1);
+                           lastInputTime = now;
+                       }
                    }
+                   return;
                 }
                 
-                // Otherwise navigate pages
+                // If mouse is NOT over text (e.g. on background), always navigate
                 if (e.deltaY > 0) {
                     changeReaderPage(1);
                     lastInputTime = now;
@@ -1817,8 +1916,7 @@
             lucide.createIcons({ root: document.getElementById('reader-modal') });
 
             // Attach Global Listeners
-            window.addEventListener('keydown', handleReaderInput);
-            window.addEventListener('wheel', handleReaderInput, { passive: false });
+            attachReaderListeners();
 
             // Fetch actual page content
             await loadReaderPageContent();
@@ -1835,7 +1933,9 @@
                     readerCurrentPageData = snap.data();
                     updateReaderUI();
                 } else {
-                    document.getElementById('reader-text').innerText = "End of story or page missing.";
+                    // Fallback for missing pages or end
+                    // Actually, end screen is handled by index check now.
+                    document.getElementById('reader-text').innerText = "";
                 }
             } catch(e) {
                 console.error("Error fetching page:", e);
@@ -1847,10 +1947,7 @@
             document.getElementById('reader-modal').classList.add('hidden');
             localStorage.removeItem('neerada_reader_book');
             localStorage.removeItem('neerada_reader_page');
-            
-            // Remove Global Listeners
-            window.removeEventListener('keydown', handleReaderInput);
-            window.removeEventListener('wheel', handleReaderInput);
+            removeReaderListeners();
         }
 
         function setReaderTheme(theme) {
@@ -1867,6 +1964,9 @@
                       updateReaderUI();
                 }
                 lucide.createIcons({ root: document.getElementById('reader-modal') });
+                // Re-attach listeners because modal DOM node changed
+                removeReaderListeners(); 
+                attachReaderListeners();
             }
         }
 
@@ -1879,6 +1979,13 @@
         }
 
         function updateReaderUI() {
+            // Check if End Screen
+            const total = readerBook.pageCount || 1;
+            if (readerPageIdx >= total) {
+                renderReaderEndScreen();
+                return;
+            }
+
             if(!readerCurrentPageData) return;
 
             const text = state.lang === 'en' ? readerCurrentPageData.en : readerCurrentPageData.la;
@@ -1887,7 +1994,11 @@
             if(titleEl) titleEl.innerText = state.lang === 'en' ? readerBook.title : readerBook.title_la;
             
             const textEl = document.getElementById('reader-text');
-            if(textEl) textEl.innerText = text || "";
+            if(textEl) {
+                textEl.innerHTML = text || ""; // Use innerHTML to allow simple formatting if needed
+                textEl.classList.add('drop-cap-content');
+                textEl.classList.remove('text-center', 'font-bold', 'text-3xl'); // Reset styles
+            }
             
             const counterEl = document.getElementById('reader-counter');
             if(counterEl) counterEl.innerText = `${readerPageIdx + 1} / ${readerBook.pageCount}`;
@@ -1909,14 +2020,58 @@
             }
         }
 
+        function renderReaderEndScreen() {
+            const imgContainer = document.getElementById('reader-image-container');
+            const txtContainer = document.getElementById('reader-text-container');
+            const textEl = document.getElementById('reader-text');
+            const titleEl = document.getElementById('reader-header-title');
+            const counterEl = document.getElementById('reader-counter');
+
+            if(imgContainer) imgContainer.classList.add('hidden');
+            if(txtContainer) {
+                txtContainer.classList.remove('flex-1');
+                txtContainer.classList.add('md:w-full');
+            }
+            
+            if(titleEl) titleEl.innerText = "Completed";
+            if(counterEl) counterEl.innerText = "End";
+
+            if(textEl) {
+                textEl.className = "flex flex-col items-center justify-center gap-6 text-center";
+                textEl.innerHTML = `
+                    <div class="w-20 h-20 bg-green-100 text-green-600 rounded-full flex items-center justify-center mb-2">
+                        <i data-lucide="check" class="w-10 h-10"></i>
+                    </div>
+                    <h2 class="text-3xl font-bold">You've finished this book!</h2>
+                    <div class="flex gap-4 mt-4">
+                        <button onclick="window.openReader('${readerBook.id}', 0)" class="px-6 py-3 bg-gray-100 hover:bg-gray-200 rounded-xl font-bold transition">
+                            Read Again
+                        </button>
+                        <button onclick="window.closeReader()" class="px-6 py-3 bg-neerada-600 hover:bg-neerada-700 text-white rounded-xl font-bold transition shadow-lg">
+                            Close Book
+                        </button>
+                    </div>
+                `;
+                lucide.createIcons({ root: textEl });
+            }
+        }
+
         function changeReaderPage(dir) {
+            const total = readerBook.pageCount || 1;
             const newIdx = readerPageIdx + dir;
-            if(newIdx >= 0 && newIdx < (readerBook.pageCount || 1)) {
+            
+            if(newIdx < 0) return; // Don't go before 0
+            
+            // Allow going to 'total' (index = total) for End Screen
+            if (newIdx <= total) {
                 readerPageIdx = newIdx;
                 localStorage.setItem('neerada_reader_page', newIdx);
-                loadReaderPageContent(); // Async fetch new page
-            } else if (newIdx >= (readerBook.pageCount || 1)) {
-                closeReader();
+                
+                if (newIdx === total) {
+                    updateReaderUI(); // Will trigger end screen
+                } else {
+                    loadReaderPageContent(); // Async fetch new page
+                }
             }
         }
 
