@@ -1795,6 +1795,31 @@
         let touchStartX = 0;
         let touchStartY = 0;
 
+        // Add this function
+        function handleReaderScroll(e) {
+            if (!readerBook || readerBook.level !== 'secondary') return;
+            
+            const container = e.target;
+            // Buffer of 200px before bottom
+            if (container.scrollTop + container.clientHeight >= container.scrollHeight - 200) {
+                const now = Date.now();
+                if (now - lastInputTime > 1000) { // 1 second debounce
+                    const total = readerBook.pageCount || 1;
+                    // Note: readerPageIdx tracks the *next* page to load in continuous mode
+                    if (readerPageIdx < total) {
+                        loadReaderPageContent(true); 
+                        lastInputTime = now;
+                    } else if (readerPageIdx === total) {
+                        // Show end screen if not already appended
+                        // We need a flag or check if end screen exists
+                        if (!document.getElementById('end-screen-marker')) {
+                             renderReaderEndScreen(true);
+                        }
+                    }
+                }
+            }
+        }
+
         // Add Listeners on Load/Open
         function attachReaderListeners() {
             window.addEventListener('keydown', handleReaderInput);
@@ -1848,6 +1873,7 @@
                 // Actually, native vertical scroll handles the requirement "paging be scroll down and scroll up"
                 // No extra swipe logic needed for continuous view except maybe forcing next page load if stuck?
                 // Let's rely on scroll event for secondary.
+                return;
             } else {
                 // Horizontal Swipe Logic (Standard Books)
                 if (absDx > absDy) {
@@ -1878,22 +1904,8 @@
                 }
             } else if (e.type === 'wheel') {
                 if (isSecondary) {
-                    // Continuous Paging Logic for Secondary
-                    // Detect if scrolled to bottom to load next page
-                    if (textContainer && (textContainer.scrollTop + textContainer.clientHeight >= textContainer.scrollHeight - 50)) {
-                        // Load next page if not already loading and available
-                        const total = readerBook.pageCount || 1;
-                        if (readerPageIdx < total) {
-                            // Debounce page loading
-                            if (now - lastInputTime > 500) { 
-                                loadReaderPageContent(true); // true = append
-                                lastInputTime = now;
-                            }
-                        } else {
-                            // End of book logic handled in render
-                            renderReaderEndScreen(true); // true = append mode
-                        }
-                    }
+                    // Native scroll handled by 'scroll' listener
+                    return;
                 } else {
                     // Standard Book Logic
                     // Smart Scroll
@@ -1951,6 +1963,13 @@
             lucide.createIcons({ root: document.getElementById('reader-modal') });
 
             attachReaderListeners();
+
+            // Attach Scroll Listener for Secondary
+            const textContainer = document.getElementById('reader-text-container');
+            if (textContainer) {
+                textContainer.removeEventListener('scroll', handleReaderScroll); // Safety removal
+                textContainer.addEventListener('scroll', handleReaderScroll);
+            }
 
             // Load Content
             await loadReaderPageContent(isSecondary); 
@@ -2024,6 +2043,9 @@
         }
 
         function closeReader() {
+            const textContainer = document.getElementById('reader-text-container');
+            if (textContainer) textContainer.removeEventListener('scroll', handleReaderScroll);
+
             document.getElementById('reader-modal').classList.add('hidden');
             localStorage.removeItem('neerada_reader_book');
             localStorage.removeItem('neerada_reader_page');
