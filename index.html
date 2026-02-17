@@ -204,6 +204,7 @@
                 websiteUrl: "https://neeradaschool.edu.la",
                 adminCode: "0000",
                 categories: ["Fiction", "Action", "Horror", "Moral Stories", "Science", "History", "Kids"],
+                newArrivals: [], // List of book IDs for custom New Arrivals
                 galleryImages: [
                     "https://images.unsplash.com/photo-1521587760476-6c12a4b040da?q=80&w=800&auto=format&fit=crop",
                     "https://images.unsplash.com/photo-1512820790803-83ca734da794?q=80&w=800&auto=format&fit=crop",
@@ -354,6 +355,7 @@
                     if(saved.footerText) state.appSettings.footerText = {...state.appSettings.footerText, ...saved.footerText};
                     if(!state.appSettings.categories) state.appSettings.categories = ["Fiction", "Action", "Horror", "Moral Stories", "Science", "History", "Kids"];
                     if(!state.appSettings.adminCode) state.appSettings.adminCode = "0000";
+                    if(!state.appSettings.newArrivals) state.appSettings.newArrivals = [];
                 } else {
                     setDoc(settingsRef, state.appSettings);
                 }
@@ -397,6 +399,7 @@
                     websiteUrl: "https://neeradaschool.edu.la",
                     adminCode: "0000",
                     categories: ["Fiction", "Action", "Horror", "Moral Stories", "Science", "History", "Kids"],
+                    newArrivals: [],
                     galleryImages: [
                         "https://images.unsplash.com/photo-1521587760476-6c12a4b040da?q=80&w=800&auto=format&fit=crop",
                         "https://images.unsplash.com/photo-1512820790803-83ca734da794?q=80&w=800&auto=format&fit=crop",
@@ -649,6 +652,18 @@
             const t = translations[state.lang];
             const s = state.appSettings;
             
+            // LOGIC FOR NEW ARRIVALS DISPLAY
+            let displayBooks = [];
+            if (s.newArrivals && s.newArrivals.length > 0) {
+                // Map IDs to objects, filter out missing/deleted books
+                displayBooks = s.newArrivals.map(id => state.books.find(b => String(b.id) === String(id))).filter(b => b);
+            } 
+            
+            // Fallback: If custom list is empty or invalid, show latest 10
+            if (displayBooks.length === 0) {
+                displayBooks = state.books.slice(0, 10);
+            }
+
             return `
                 <div class="font-app bg-gray-50 min-h-screen flex flex-col">
                     <nav class="bg-neerada-900 text-white shadow-lg sticky top-0 z-40">
@@ -683,7 +698,7 @@
                         <div id="catalog-area">
                              <h2 class="text-2xl font-bold text-gray-800 mb-6 border-b pb-2">New Arrivals</h2>
                              <div class="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-5 gap-6">
-                                ${state.books.slice(0, 5).map(b => renderBookCard(b)).join('')}
+                                ${displayBooks.map(b => renderBookCard(b)).join('')}
                              </div>
                         </div>
                     </main>
@@ -974,6 +989,37 @@
                 <h2 class="text-xl font-bold mb-6">Customize Home Page</h2>
                 
                 <div class="space-y-8">
+                    <!-- New Arrivals Management -->
+                    <div>
+                        <h3 class="font-bold text-gray-800 mb-3">Manage New Arrivals (Custom List)</h3>
+                        <div class="bg-gray-100 p-4 rounded-xl border border-gray-200">
+                            <div class="mb-4">
+                                <label class="block text-sm font-medium text-gray-700 mb-2">Add Story to Featured New Arrivals</label>
+                                <div class="flex gap-2">
+                                    <select id="new-arrival-select" class="flex-grow border rounded-lg px-4 py-2 text-sm">
+                                        <option value="">Select a story...</option>
+                                        ${state.books.filter(b => !s.newArrivals?.includes(String(b.id))).map(b => `<option value="${b.id}">${b.title}</option>`).join('')}
+                                    </select>
+                                    <button onclick="window.addToNewArrivals()" class="bg-neerada-600 text-white px-4 py-2 rounded-lg font-bold text-sm">Add</button>
+                                </div>
+                            </div>
+                            
+                            <ul class="space-y-2">
+                                ${(s.newArrivals || []).map(id => {
+                                    const b = state.books.find(book => String(book.id) === String(id));
+                                    if (!b) return '';
+                                    return `
+                                        <li class="flex justify-between items-center bg-white p-3 rounded-lg border shadow-sm">
+                                            <span class="text-sm font-medium truncate">${b.title}</span>
+                                            <button onclick="window.removeFromNewArrivals('${id}')" class="text-red-500 hover:bg-red-50 p-1 rounded"><i data-lucide="trash-2" class="w-4 h-4"></i></button>
+                                        </li>
+                                    `;
+                                }).join('')}
+                                ${(!s.newArrivals || s.newArrivals.length === 0) ? '<li class="text-sm text-gray-500 italic p-2">Currently showing default latest 10 books. Add books here to override.</li>' : ''}
+                            </ul>
+                        </div>
+                    </div>
+
                     <!-- Gallery Images -->
                     <div>
                         <h3 class="font-bold text-gray-800 mb-3">Gallery Images (4 Slots)</h3>
@@ -1065,6 +1111,25 @@
             state.appSettings.footerText[key] = value;
             saveSettings();
         }
+
+        // New Arrivals Management Helpers
+        window.addToNewArrivals = function() {
+            const select = document.getElementById('new-arrival-select');
+            const id = select.value;
+            if (!id) return;
+            
+            if (!state.appSettings.newArrivals) state.appSettings.newArrivals = [];
+            state.appSettings.newArrivals.push(String(id));
+            saveSettings();
+            switchAdminTab('homepage');
+        };
+
+        window.removeFromNewArrivals = function(id) {
+            if (!state.appSettings.newArrivals) return;
+            state.appSettings.newArrivals = state.appSettings.newArrivals.filter(existingId => existingId !== String(id));
+            saveSettings();
+            switchAdminTab('homepage');
+        };
 
         // ... (Existing Book Editor Functions) ...
         function renderBookEditorModal() {
@@ -1910,6 +1975,8 @@
         window.initiateSystemLock = initiateSystemLock;
         window.unlockSystemAttempt = unlockSystemAttempt;
         window.handleReaderInput = handleReaderInput;
+        window.addToNewArrivals = addToNewArrivals;
+        window.removeFromNewArrivals = removeFromNewArrivals;
 
     </script>
 </body>
