@@ -101,7 +101,7 @@
 
         /* Drop Cap Logic */
         .drop-cap-content::first-letter {
-            font-family: 'UnifrakturMaguntia', cursive;
+            font-family: 'Playfair Display', serif; /* Changed from UnifrakturMaguntia for readability */
             float: left;
             font-size: 3.5em;
             line-height: 0.8;
@@ -1681,6 +1681,49 @@
             `;
         }
 
+        // --- NEW: Scroll and Keyboard Input Handler ---
+        let lastInputTime = 0;
+        const INPUT_COOLDOWN = 500; // ms
+
+        function handleReaderInput(e) {
+            if (document.getElementById('reader-modal').classList.contains('hidden')) return;
+
+            // Debounce
+            const now = Date.now();
+            if (now - lastInputTime < INPUT_COOLDOWN) return;
+
+            if (e.type === 'keydown') {
+                if (e.key === 'ArrowRight') {
+                    changeReaderPage(1);
+                    lastInputTime = now;
+                } else if (e.key === 'ArrowLeft') {
+                    changeReaderPage(-1);
+                    lastInputTime = now;
+                } else if (e.key === 'Escape') {
+                    closeReader();
+                }
+            } else if (e.type === 'wheel') {
+                const textContainer = document.getElementById('reader-text-container');
+                
+                // Smart Scroll: If hovering over text and text is scrollable, do not turn page.
+                if (textContainer && textContainer.contains(e.target)) {
+                   if (textContainer.scrollHeight > textContainer.clientHeight) {
+                       // Allow native scroll
+                       return; 
+                   }
+                }
+                
+                // Otherwise navigate pages
+                if (e.deltaY > 0) {
+                    changeReaderPage(1);
+                    lastInputTime = now;
+                } else if (e.deltaY < 0) {
+                    changeReaderPage(-1);
+                    lastInputTime = now;
+                }
+            }
+        }
+
         async function openReader(id, pageIdx = 0) {
             // FIX: String comparison for finding book
             const strId = String(id);
@@ -1704,6 +1747,10 @@
             document.getElementById('reader-counter').innerText = `${readerPageIdx + 1} / ${readerBook.pageCount || '?'}`;
             document.getElementById('reader-modal').classList.remove('hidden');
             lucide.createIcons({ root: document.getElementById('reader-modal') });
+
+            // Attach Global Listeners
+            window.addEventListener('keydown', handleReaderInput);
+            window.addEventListener('wheel', handleReaderInput, { passive: false });
 
             // Fetch actual page content
             await loadReaderPageContent();
@@ -1732,6 +1779,10 @@
             document.getElementById('reader-modal').classList.add('hidden');
             localStorage.removeItem('neerada_reader_book');
             localStorage.removeItem('neerada_reader_page');
+            
+            // Remove Global Listeners
+            window.removeEventListener('keydown', handleReaderInput);
+            window.removeEventListener('wheel', handleReaderInput);
         }
 
         function setReaderTheme(theme) {
@@ -1858,6 +1909,7 @@
         window.toggleReaderLang = toggleReaderLang;
         window.initiateSystemLock = initiateSystemLock;
         window.unlockSystemAttempt = unlockSystemAttempt;
+        window.handleReaderInput = handleReaderInput;
 
     </script>
 </body>
