@@ -988,38 +988,42 @@
 
         function renderAdminHomePageTab() {
             const s = state.appSettings;
+            const newArrivals = s.newArrivals || [];
+            
+            // Generate list of checkboxes for books
+            const bookCheckboxes = state.books.map(b => {
+                const isChecked = newArrivals.includes(String(b.id));
+                return `
+                    <div class="flex items-center gap-3 p-3 bg-white border rounded-lg hover:bg-gray-50 transition cursor-pointer" onclick="document.getElementById('chk-${b.id}').click()">
+                        <input type="checkbox" id="chk-${b.id}" value="${b.id}" ${isChecked ? 'checked' : ''} onclick="event.stopPropagation(); window.toggleNewArrival('${b.id}')" class="w-5 h-5 text-neerada-600 rounded focus:ring-neerada-500">
+                        <div class="flex-grow">
+                            <p class="font-medium text-sm text-gray-900">${b.title}</p>
+                            <p class="text-xs text-gray-500">${b.author} • ${b.level}</p>
+                        </div>
+                        ${isChecked ? '<span class="text-xs font-bold text-green-600 px-2 py-1 bg-green-100 rounded">Featured</span>' : ''}
+                    </div>
+                `;
+            }).join('');
+
             return `
                 <h2 class="text-xl font-bold mb-6">Customize Home Page</h2>
                 
                 <div class="space-y-8">
                     <!-- New Arrivals Management -->
                     <div>
-                        <h3 class="font-bold text-gray-800 mb-3">Manage New Arrivals (Custom List)</h3>
+                        <h3 class="font-bold text-gray-800 mb-3">Manage New Arrivals (Select books to feature)</h3>
                         <div class="bg-gray-100 p-4 rounded-xl border border-gray-200">
-                            <div class="mb-4">
-                                <label class="block text-sm font-medium text-gray-700 mb-2">Add Story to Featured New Arrivals</label>
-                                <div class="flex gap-2">
-                                    <select id="new-arrival-select" class="flex-grow border rounded-lg px-4 py-2 text-sm">
-                                        <option value="">Select a story...</option>
-                                        ${state.books.filter(b => !s.newArrivals?.includes(String(b.id))).map(b => `<option value="${b.id}">${b.title}</option>`).join('')}
-                                    </select>
-                                    <button onclick="window.addToNewArrivals()" class="bg-neerada-600 text-white px-4 py-2 rounded-lg font-bold text-sm">Add</button>
-                                </div>
+                            <div class="flex justify-between items-center mb-4">
+                                <p class="text-sm text-gray-600">Selected: <span class="font-bold" id="selected-count">${newArrivals.length}</span> books</p>
+                                <button onclick="window.saveNewArrivalsSelection()" class="bg-neerada-600 hover:bg-neerada-700 text-white px-4 py-2 rounded-lg text-sm font-bold shadow-sm transition">
+                                    Save Selection
+                                </button>
                             </div>
                             
-                            <ul class="space-y-2">
-                                ${(s.newArrivals || []).map(id => {
-                                    const b = state.books.find(book => String(book.id) === String(id));
-                                    if (!b) return '';
-                                    return `
-                                        <li class="flex justify-between items-center bg-white p-3 rounded-lg border shadow-sm">
-                                            <span class="text-sm font-medium truncate">${b.title}</span>
-                                            <button onclick="window.removeFromNewArrivals('${id}')" class="text-red-500 hover:bg-red-50 p-1 rounded"><i data-lucide="trash-2" class="w-4 h-4"></i></button>
-                                        </li>
-                                    `;
-                                }).join('')}
-                                ${(!s.newArrivals || s.newArrivals.length === 0) ? '<li class="text-sm text-gray-500 italic p-2">Currently showing default latest 10 books. Add books here to override.</li>' : ''}
-                            </ul>
+                            <div class="max-h-60 overflow-y-auto space-y-2 pr-2 custom-scrollbar">
+                                ${state.books.length > 0 ? bookCheckboxes : '<p class="text-sm text-gray-500 italic p-2">No books available in library.</p>'}
+                            </div>
+                            <p class="text-xs text-gray-500 mt-2 italic">* If no books are selected, the app will automatically show the 10 most recent additions.</p>
                         </div>
                     </div>
 
@@ -1115,23 +1119,28 @@
             saveSettings();
         }
 
-        // New Arrivals Management Helpers
-        window.addToNewArrivals = function() {
-            const select = document.getElementById('new-arrival-select');
-            const id = select.value;
-            if (!id) return;
-            
-            if (!state.appSettings.newArrivals) state.appSettings.newArrivals = [];
-            state.appSettings.newArrivals.push(String(id));
-            saveSettings();
-            switchAdminTab('homepage');
+        // New Arrivals Management Helpers - Updated for Checkboxes
+        let tempNewArrivals = []; 
+
+        window.toggleNewArrival = function(id) {
+            // Update UI counter immediately
+            const checkboxes = document.querySelectorAll('input[type="checkbox"][id^="chk-"]');
+            let count = 0;
+            checkboxes.forEach(cb => { if(cb.checked) count++; });
+            document.getElementById('selected-count').innerText = count;
         };
 
-        window.removeFromNewArrivals = function(id) {
-            if (!state.appSettings.newArrivals) return;
-            state.appSettings.newArrivals = state.appSettings.newArrivals.filter(existingId => existingId !== String(id));
+        window.saveNewArrivalsSelection = function() {
+            const checkboxes = document.querySelectorAll('input[type="checkbox"][id^="chk-"]');
+            const selectedIds = [];
+            checkboxes.forEach(cb => {
+                if(cb.checked) selectedIds.push(cb.value);
+            });
+            
+            state.appSettings.newArrivals = selectedIds;
             saveSettings();
-            switchAdminTab('homepage');
+            alert("New Arrivals list updated successfully!");
+            switchAdminTab('homepage'); // Re-render to show updated badges
         };
 
         // ... (Existing Book Editor Functions) ...
@@ -1688,45 +1697,75 @@
         let readerBook = null;
         let readerPageIdx = 0;
         let readerCurrentPageData = null; // Store current page content
+        let secondaryPagesLoaded = []; // Track loaded pages for secondary view
 
         function renderReaderModal() {
             const currentTheme = readerThemes[state.readerTheme];
+            const isSecondary = readerBook && readerBook.level === 'secondary';
+            
+            // CONTINUOUS VERTICAL LAYOUT FOR SECONDARY BOOKS
+            if (isSecondary) {
+                return `
+                    <div id="reader-modal" class="fixed inset-0 z-[100] hidden flex flex-col ${currentTheme.bg}">
+                        <!-- Header -->
+                        <div class="p-4 border-b border-gray-200/20 flex justify-between items-center shadow-sm relative z-20">
+                            <button onclick="window.closeReader()" class="text-red-500 font-bold flex items-center gap-2">
+                                <i data-lucide="x-circle" class="w-6 h-6"></i> <span class="hidden sm:inline">Close</span>
+                            </button>
+                            
+                            <div class="flex gap-4 items-center">
+                                <button onclick="window.toggleReaderLang()" class="flex items-center gap-2 bg-black/5 hover:bg-black/10 px-3 py-1.5 rounded-full transition text-sm font-bold ${currentTheme.text}">
+                                    <i data-lucide="globe" class="w-4 h-4"></i>
+                                    <span id="reader-lang-btn-text">${state.lang.toUpperCase()}</span>
+                                </button>
+                                <div class="flex gap-2">
+                                    ${Object.keys(readerThemes).map(t => `
+                                        <button onclick="window.setReaderTheme('${t}')" class="w-6 h-6 rounded-full border border-gray-300 shadow-sm ${readerThemes[t].bg} ${state.readerTheme === t ? 'ring-2 ring-neerada-500' : ''}" title="${readerThemes[t].name}"></button>
+                                    `).join('')}
+                                </div>
+                            </div>
+                            <span class="text-sm font-mono opacity-60 ${currentTheme.text}" id="reader-counter">Continuous Mode</span>
+                        </div>
+                        
+                        <!-- Continuous Vertical Scroll Container -->
+                        <div id="reader-text-container" class="flex-grow overflow-y-auto relative p-4 md:p-12 scroll-smooth">
+                            <div class="max-w-3xl mx-auto flex flex-col gap-12 pb-32" id="reader-continuous-content">
+                                <!-- Pages will be appended here dynamically -->
+                            </div>
+                            <div id="reader-loader" class="text-center py-8 hidden opacity-50">
+                                <div class="inline-block w-6 h-6 border-2 border-gray-400 border-t-transparent rounded-full animate-spin"></div>
+                            </div>
+                        </div>
+                    </div>
+                `;
+            }
+
+            // STANDARD LAYOUT (Split View) for Primary/Kindergarten
             return `
                 <div id="reader-modal" class="fixed inset-0 z-[100] hidden flex flex-col ${currentTheme.bg}">
-                    <!-- Header -->
                     <div class="p-4 border-b border-gray-200/20 flex justify-between items-center shadow-sm relative z-20">
                         <button onclick="window.closeReader()" class="text-red-500 font-bold flex items-center gap-2">
                             <i data-lucide="x-circle" class="w-6 h-6"></i> <span class="hidden sm:inline">Close</span>
                         </button>
-                        
                         <div class="flex gap-4 items-center">
-                            <!-- Language Toggle Inside Reader -->
                             <button onclick="window.toggleReaderLang()" class="flex items-center gap-2 bg-black/5 hover:bg-black/10 px-3 py-1.5 rounded-full transition text-sm font-bold ${currentTheme.text}">
                                 <i data-lucide="globe" class="w-4 h-4"></i>
                                 <span id="reader-lang-btn-text">${state.lang.toUpperCase()}</span>
                             </button>
-
-                            <!-- Theme Switcher -->
                             <div class="flex gap-2">
                                 ${Object.keys(readerThemes).map(t => `
                                     <button onclick="window.setReaderTheme('${t}')" class="w-6 h-6 rounded-full border border-gray-300 shadow-sm ${readerThemes[t].bg} ${state.readerTheme === t ? 'ring-2 ring-neerada-500' : ''}" title="${readerThemes[t].name}"></button>
                                 `).join('')}
                             </div>
                         </div>
-
                         <span class="text-sm font-mono opacity-60 ${currentTheme.text}" id="reader-counter">Loading...</span>
                     </div>
                     
                     <div class="flex-grow flex items-center justify-center p-4 md:p-8 overflow-hidden h-full relative" id="reader-scroll-area">
-                        <!-- Split Layout Container -->
                         <div class="w-full max-w-6xl h-[85vh] rounded-3xl shadow-2xl flex flex-col md:flex-row overflow-hidden relative border border-gray-200/10 ${state.readerTheme === 'night' ? 'bg-gray-800' : 'bg-white/80 backdrop-blur-md'}" id="reader-content-box">
-                            
-                            <!-- Image Side -->
                             <div id="reader-image-container" class="hidden md:flex-1 bg-black/5 flex items-center justify-center p-4 relative">
                                 <img id="reader-image" src="" class="max-w-full max-h-full object-contain shadow-lg rounded-lg">
                             </div>
-
-                            <!-- Text Side -->
                             <div id="reader-text-container" class="flex-1 flex flex-col items-center justify-center p-8 md:p-12 overflow-y-auto relative ${currentTheme.text}">
                                 <h2 class="font-serif font-bold text-2xl mb-6 opacity-80" id="reader-header-title">Title</h2>
                                 <div class="font-serif text-lg md:text-xl leading-loose text-justify drop-cap-content max-w-prose" id="reader-text">
@@ -1736,7 +1775,6 @@
                         </div>
                     </div>
 
-                    <!-- Controls -->
                     <div class="p-4 border-t border-gray-200/20 flex justify-center gap-8 ${currentTheme.bg} relative z-20">
                         <button onclick="window.changeReaderPage(-1)" class="px-6 py-2 bg-gray-200/50 hover:bg-gray-200 text-gray-700 rounded-full font-bold transition flex items-center gap-2">
                             <i data-lucide="arrow-left" class="w-5 h-5"></i> Prev
@@ -1803,33 +1841,15 @@
             if (Math.max(absDx, absDy) < 50) return; // Threshold
 
             const isSecondary = readerBook && readerBook.level === 'secondary';
-            const textContainer = document.getElementById('reader-text-container');
-            
-            // For Secondary: Vertical Navigation preferred (Up/Down)
-            // For Others: Horizontal Navigation (Left/Right)
             
             if (isSecondary) {
-                // Vertical Swipe Logic
-                // Swipe Up (dy < 0) -> Scroll Down / Next Page
-                // Swipe Down (dy > 0) -> Scroll Up / Prev Page
-                
-                if (absDy > absDx) {
-                    if (dy < 0) { // Swiping UP (Finger moves up, content moves down)
-                        // Logic: If scrolling content, let native scroll happen? 
-                        // But touch end happens after scroll.
-                        // Check if we hit bottom
-                        if (textContainer && (textContainer.scrollTop + textContainer.clientHeight >= textContainer.scrollHeight - 5)) {
-                             changeReaderPage(1);
-                        }
-                    } else { // Swiping DOWN (Finger moves down, content moves up)
-                        // Check if at top
-                        if (textContainer && textContainer.scrollTop <= 0) {
-                            changeReaderPage(-1);
-                        }
-                    }
-                }
+                // Secondary already has native scrolling/paging built into scroll event
+                // Just let native scroll happen unless we need specific gestures?
+                // Actually, native vertical scroll handles the requirement "paging be scroll down and scroll up"
+                // No extra swipe logic needed for continuous view except maybe forcing next page load if stuck?
+                // Let's rely on scroll event for secondary.
             } else {
-                // Horizontal Swipe Logic (Standard)
+                // Horizontal Swipe Logic (Standard Books)
                 if (absDx > absDy) {
                     if (dx < 0) changeReaderPage(1); // Swipe Left -> Next
                     else changeReaderPage(-1);       // Swipe Right -> Prev
@@ -1840,65 +1860,73 @@
         function handleReaderInput(e) {
             if (document.getElementById('reader-modal').classList.contains('hidden')) return;
 
-            // Debounce
-            const now = Date.now();
-            if (now - lastInputTime < INPUT_COOLDOWN) return;
+            const isSecondary = readerBook && readerBook.level === 'secondary';
+            const textContainer = document.getElementById('reader-text-container');
 
+            // Debounce for keyboard/mousewheel paging on STANDARD books
+            const now = Date.now();
+            
             if (e.type === 'keydown') {
                 if (e.key === 'ArrowRight') {
-                    changeReaderPage(1);
-                    lastInputTime = now;
+                    if(isSecondary) return; // Let user scroll naturally
+                    if (now - lastInputTime > INPUT_COOLDOWN) { changeReaderPage(1); lastInputTime = now; }
                 } else if (e.key === 'ArrowLeft') {
-                    changeReaderPage(-1);
-                    lastInputTime = now;
+                    if(isSecondary) return;
+                    if (now - lastInputTime > INPUT_COOLDOWN) { changeReaderPage(-1); lastInputTime = now; }
                 } else if (e.key === 'Escape') {
                     closeReader();
                 }
             } else if (e.type === 'wheel') {
-                const isSecondary = readerBook && readerBook.level === 'secondary';
-                const textContainer = document.getElementById('reader-text-container');
-                
-                // Smart Scroll Logic
-                if (textContainer && textContainer.contains(e.target)) {
-                   // Allow normal scroll if content overflows
-                   // Only trigger page turn if at boundaries
-                   
-                   if (e.deltaY > 0) { // Scroll Down
-                       // If at bottom, go next
-                       if (textContainer.scrollTop + textContainer.clientHeight >= textContainer.scrollHeight - 1) {
-                           changeReaderPage(1);
-                           lastInputTime = now;
+                if (isSecondary) {
+                    // Continuous Paging Logic for Secondary
+                    // Detect if scrolled to bottom to load next page
+                    if (textContainer && (textContainer.scrollTop + textContainer.clientHeight >= textContainer.scrollHeight - 50)) {
+                        // Load next page if not already loading and available
+                        const total = readerBook.pageCount || 1;
+                        if (readerPageIdx < total) {
+                            // Debounce page loading
+                            if (now - lastInputTime > 500) { 
+                                loadReaderPageContent(true); // true = append
+                                lastInputTime = now;
+                            }
+                        } else {
+                            // End of book logic handled in render
+                            renderReaderEndScreen(true); // true = append mode
+                        }
+                    }
+                } else {
+                    // Standard Book Logic
+                    // Smart Scroll
+                    if (textContainer && textContainer.contains(e.target)) {
+                       if (e.deltaY > 0) { // Scroll Down
+                           if (textContainer.scrollTop + textContainer.clientHeight >= textContainer.scrollHeight - 1) {
+                               if (now - lastInputTime > INPUT_COOLDOWN) { changeReaderPage(1); lastInputTime = now; }
+                           }
+                       } else if (e.deltaY < 0) { // Scroll Up
+                           if (textContainer.scrollTop <= 0) {
+                               if (now - lastInputTime > INPUT_COOLDOWN) { changeReaderPage(-1); lastInputTime = now; }
+                           }
                        }
-                       // Else let native scroll happen
-                   } else if (e.deltaY < 0) { // Scroll Up
-                       // If at top, go prev
-                       if (textContainer.scrollTop <= 0) {
-                           changeReaderPage(-1);
-                           lastInputTime = now;
-                       }
-                   }
-                   return;
-                }
-                
-                // If mouse is NOT over text (e.g. on background), always navigate
-                if (e.deltaY > 0) {
-                    changeReaderPage(1);
-                    lastInputTime = now;
-                } else if (e.deltaY < 0) {
-                    changeReaderPage(-1);
-                    lastInputTime = now;
+                       return;
+                    }
+                    // Outside text area
+                    if (now - lastInputTime > INPUT_COOLDOWN) {
+                        if (e.deltaY > 0) changeReaderPage(1);
+                        else changeReaderPage(-1);
+                        lastInputTime = now;
+                    }
                 }
             }
         }
 
         async function openReader(id, pageIdx = 0) {
-            // FIX: String comparison for finding book
             const strId = String(id);
             readerBook = state.books.find(b => String(b.id) === strId);
             if(!readerBook) { console.error("Book not found", id); return; }
             
             readerPageIdx = pageIdx;
-            readerCurrentPageData = null; // Reset previous page data
+            readerCurrentPageData = null; 
+            secondaryPagesLoaded = []; // Reset for continuous view
             
             localStorage.setItem('neerada_reader_book', strId);
             localStorage.setItem('neerada_reader_page', pageIdx);
@@ -1909,38 +1937,90 @@
             if(oldModal) oldModal.remove();
             document.body.appendChild(wrapper.firstElementChild);
             
-            // Initial render with loading state
-            document.getElementById('reader-header-title').innerText = state.lang === 'en' ? readerBook.title : readerBook.title_la;
-            document.getElementById('reader-counter').innerText = `${readerPageIdx + 1} / ${readerBook.pageCount || '?'}`;
+            // Initial render
+            const isSecondary = readerBook.level === 'secondary';
+            if (!isSecondary) {
+                document.getElementById('reader-header-title').innerText = state.lang === 'en' ? readerBook.title : readerBook.title_la;
+                document.getElementById('reader-counter').innerText = `${readerPageIdx + 1} / ${readerBook.pageCount || '?'}`;
+            } else {
+                // Secondary starts at page 0
+                readerPageIdx = 0; 
+            }
+            
             document.getElementById('reader-modal').classList.remove('hidden');
             lucide.createIcons({ root: document.getElementById('reader-modal') });
 
-            // Attach Global Listeners
             attachReaderListeners();
 
-            // Fetch actual page content
-            await loadReaderPageContent();
+            // Load Content
+            await loadReaderPageContent(isSecondary); 
         }
 
-        async function loadReaderPageContent() {
+        async function loadReaderPageContent(append = false) {
             if(!readerBook) return;
             
-            // Try fetch specific page doc
+            // Prevent double loading same page if secondary
+            if(append && secondaryPagesLoaded.includes(readerPageIdx)) return;
+
             const pageRef = doc(db, 'artifacts', appId, 'public', 'data', 'neerada_book_pages', `${readerBook.id}_${readerPageIdx}`);
+            
+            // Show loader if appending
+            if(append) {
+                const loader = document.getElementById('reader-loader');
+                if(loader) loader.classList.remove('hidden');
+            }
+
             try {
                 const snap = await getDoc(pageRef);
                 if(snap.exists()) {
-                    readerCurrentPageData = snap.data();
-                    updateReaderUI();
+                    const data = snap.data();
+                    if(append) {
+                        secondaryPagesLoaded.push(readerPageIdx);
+                        appendSecondaryPage(data, readerPageIdx);
+                        readerPageIdx++; // Prepare for next page
+                    } else {
+                        readerCurrentPageData = data;
+                        updateReaderUI();
+                    }
                 } else {
-                    // Fallback for missing pages or end
-                    // Actually, end screen is handled by index check now.
-                    document.getElementById('reader-text').innerText = "";
+                    // Page missing
                 }
             } catch(e) {
                 console.error("Error fetching page:", e);
-                document.getElementById('reader-text').innerText = "Error loading content.";
             }
+            
+            if(append) {
+                const loader = document.getElementById('reader-loader');
+                if(loader) loader.classList.add('hidden');
+            }
+        }
+
+        // NEW: Appends page content for Secondary Vertical Scroll
+        function appendSecondaryPage(data, idx) {
+            const container = document.getElementById('reader-continuous-content');
+            if(!container) return;
+
+            const text = state.lang === 'en' ? data.en : data.la;
+            const currentTheme = readerThemes[state.readerTheme];
+
+            const pageHtml = `
+                <div class="secondary-page-block mb-12 border-b border-gray-200/20 pb-8 animate-slide-up">
+                    <div class="text-xs font-bold uppercase tracking-widest opacity-30 text-center mb-4 ${currentTheme.text}">Page ${idx + 1}</div>
+                    ${idx === 0 ? `<h2 class="font-serif font-bold text-3xl md:text-4xl text-center opacity-80 ${currentTheme.text} mb-6 leading-tight">${state.lang === 'en' ? readerBook.title : readerBook.title_la}</h2>` : ''}
+                    
+                    ${data.image ? `
+                        <div class="w-full flex justify-center mb-8">
+                            <img src="${data.image}" class="max-w-full rounded-xl shadow-md max-h-[60vh] object-contain">
+                        </div>
+                    ` : ''}
+
+                    <div class="font-serif text-lg md:text-xl leading-loose text-justify ${currentTheme.text} ${idx === 0 ? 'drop-cap-content' : ''}">
+                        ${text}
+                    </div>
+                </div>
+            `;
+            
+            container.insertAdjacentHTML('beforeend', pageHtml);
         }
 
         function closeReader() {
@@ -1952,36 +2032,57 @@
 
         function setReaderTheme(theme) {
             state.readerTheme = theme;
-            const oldModal = document.getElementById('reader-modal');
-            if(oldModal) {
-                const wrapper = document.createElement('div');
-                wrapper.innerHTML = renderReaderModal();
-                oldModal.replaceWith(wrapper.firstElementChild);
-                document.getElementById('reader-modal').classList.remove('hidden');
-                // Re-populate since we destroyed DOM
-                if(readerBook) {
-                      document.getElementById('reader-header-title').innerText = state.lang === 'en' ? readerBook.title : readerBook.title_la;
-                      updateReaderUI();
+            // For continuous view, we need to rebuild carefully or just swap classes?
+            // Rebuilding is safer to apply new theme classes to all appended content
+            // But we lose scroll position.
+            // Simple approach: Close and Reopen or simple reload
+            const isSecondary = readerBook && readerBook.level === 'secondary';
+            if (isSecondary) {
+                // Just reload current view
+                const oldModal = document.getElementById('reader-modal');
+                if(oldModal) oldModal.remove();
+                // Re-open (this resets scroll, but applies theme)
+                openReader(readerBook.id, 0); 
+            } else {
+                // Standard behavior
+                const oldModal = document.getElementById('reader-modal');
+                if(oldModal) {
+                    const wrapper = document.createElement('div');
+                    wrapper.innerHTML = renderReaderModal();
+                    oldModal.replaceWith(wrapper.firstElementChild);
+                    document.getElementById('reader-modal').classList.remove('hidden');
+                    if(readerBook) {
+                          const titleEl = document.getElementById('reader-header-title');
+                          if(titleEl) titleEl.innerText = state.lang === 'en' ? readerBook.title : readerBook.title_la;
+                          updateReaderUI();
+                    }
+                    lucide.createIcons({ root: document.getElementById('reader-modal') });
+                    removeReaderListeners(); 
+                    attachReaderListeners();
                 }
-                lucide.createIcons({ root: document.getElementById('reader-modal') });
-                // Re-attach listeners because modal DOM node changed
-                removeReaderListeners(); 
-                attachReaderListeners();
             }
         }
 
         function toggleReaderLang() {
             state.lang = state.lang === 'en' ? 'la' : 'en';
-            updateReaderUI();
-            const btnText = document.getElementById('reader-lang-btn-text');
-            if(btnText) btnText.innerText = state.lang.toUpperCase();
-            render();
+            const isSecondary = readerBook && readerBook.level === 'secondary';
+            if (isSecondary) {
+                // Re-render completely for secondary to update all loaded text
+                const oldModal = document.getElementById('reader-modal');
+                if(oldModal) oldModal.remove();
+                openReader(readerBook.id, 0); 
+            } else {
+                updateReaderUI();
+                const btnText = document.getElementById('reader-lang-btn-text');
+                if(btnText) btnText.innerText = state.lang.toUpperCase();
+                render();
+            }
         }
 
         function updateReaderUI() {
-            // Check if End Screen
+            // Check if End Screen (Only for Standard)
             const total = readerBook.pageCount || 1;
-            if (readerPageIdx >= total) {
+            if (readerBook.level !== 'secondary' && readerPageIdx >= total) {
                 renderReaderEndScreen();
                 return;
             }
@@ -1995,9 +2096,9 @@
             
             const textEl = document.getElementById('reader-text');
             if(textEl) {
-                textEl.innerHTML = text || ""; // Use innerHTML to allow simple formatting if needed
+                textEl.innerHTML = text || "";
                 textEl.classList.add('drop-cap-content');
-                textEl.classList.remove('text-center', 'font-bold', 'text-3xl'); // Reset styles
+                textEl.classList.remove('text-center', 'font-bold', 'text-3xl'); 
             }
             
             const counterEl = document.getElementById('reader-counter');
@@ -2020,39 +2121,46 @@
             }
         }
 
-        function renderReaderEndScreen() {
-            const imgContainer = document.getElementById('reader-image-container');
-            const txtContainer = document.getElementById('reader-text-container');
-            const textEl = document.getElementById('reader-text');
-            const titleEl = document.getElementById('reader-header-title');
-            const counterEl = document.getElementById('reader-counter');
+        function renderReaderEndScreen(append = false) {
+            // If already shown, don't show again
+            if(document.getElementById('end-screen-marker')) return;
 
-            if(imgContainer) imgContainer.classList.add('hidden');
-            if(txtContainer) {
-                txtContainer.classList.remove('flex-1');
-                txtContainer.classList.add('md:w-full');
-            }
-            
-            if(titleEl) titleEl.innerText = "Completed";
-            if(counterEl) counterEl.innerText = "End";
-
-            if(textEl) {
-                textEl.className = "flex flex-col items-center justify-center gap-6 text-center";
-                textEl.innerHTML = `
+            const html = `
+                <div id="end-screen-marker" class="flex flex-col items-center justify-center gap-6 text-center py-16 animate-slide-up">
                     <div class="w-20 h-20 bg-green-100 text-green-600 rounded-full flex items-center justify-center mb-2">
                         <i data-lucide="check" class="w-10 h-10"></i>
                     </div>
-                    <h2 class="text-3xl font-bold">You've finished this book!</h2>
+                    <h2 class="text-3xl font-bold ${state.readerTheme === 'night' ? 'text-white' : 'text-gray-800'}">You've finished this book!</h2>
                     <div class="flex gap-4 mt-4">
-                        <button onclick="window.openReader('${readerBook.id}', 0)" class="px-6 py-3 bg-gray-100 hover:bg-gray-200 rounded-xl font-bold transition">
+                        <button onclick="window.openReader('${readerBook.id}', 0)" class="px-6 py-3 bg-gray-100 hover:bg-gray-200 rounded-xl font-bold transition text-gray-800">
                             Read Again
                         </button>
                         <button onclick="window.closeReader()" class="px-6 py-3 bg-neerada-600 hover:bg-neerada-700 text-white rounded-xl font-bold transition shadow-lg">
                             Close Book
                         </button>
                     </div>
-                `;
-                lucide.createIcons({ root: textEl });
+                </div>
+            `;
+
+            if (append) {
+                // Secondary: Append to bottom
+                const container = document.getElementById('reader-continuous-content');
+                if(container) {
+                    container.insertAdjacentHTML('beforeend', html);
+                    lucide.createIcons({ root: container });
+                }
+            } else {
+                // Standard: Replace content
+                const textEl = document.getElementById('reader-text');
+                const imgContainer = document.getElementById('reader-image-container');
+                if(imgContainer) imgContainer.classList.add('hidden');
+                if(textEl) {
+                    textEl.innerHTML = html;
+                    textEl.className = ""; // Reset classes
+                    lucide.createIcons({ root: textEl });
+                }
+                const counter = document.getElementById('reader-counter');
+                if(counter) counter.innerText = "Completed";
             }
         }
 
@@ -2060,17 +2168,16 @@
             const total = readerBook.pageCount || 1;
             const newIdx = readerPageIdx + dir;
             
-            if(newIdx < 0) return; // Don't go before 0
+            if(newIdx < 0) return; 
             
-            // Allow going to 'total' (index = total) for End Screen
             if (newIdx <= total) {
                 readerPageIdx = newIdx;
                 localStorage.setItem('neerada_reader_page', newIdx);
                 
                 if (newIdx === total) {
-                    updateReaderUI(); // Will trigger end screen
+                    updateReaderUI(); // End screen
                 } else {
-                    loadReaderPageContent(); // Async fetch new page
+                    loadReaderPageContent();
                 }
             }
         }
@@ -2133,8 +2240,8 @@
         window.initiateSystemLock = initiateSystemLock;
         window.unlockSystemAttempt = unlockSystemAttempt;
         window.handleReaderInput = handleReaderInput;
-        window.addToNewArrivals = addToNewArrivals;
-        window.removeFromNewArrivals = removeFromNewArrivals;
+        window.toggleNewArrival = toggleNewArrival;
+        window.saveNewArrivalsSelection = saveNewArrivalsSelection;
 
     </script>
 </body>
